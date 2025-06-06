@@ -1,13 +1,27 @@
-# ImaginAI
+# ImaginAI [![License](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png)](https://creativecommons.org/licenses/by-nc-sa/4.0/) [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/C0C0UZS4P)
 
-ImaginAI is a web-based interactive fiction game, inspired by AI Dungeon, where an AI acts as the storyteller and the player guides the narrative through their actions and dialogue. This project is also known as Taleon.ai and is envisioned to be hosted at imagin.ai. AI Dungeon "At Home" Edition.
-The application leverages the power of Large Language Models(AI) to generate dynamic and engaging story content.
+> Web-based interactive fiction powered by AI  
+> “AI Dungeon at Home” Edition  
 
-It allows users to craft intricate "Scenario Templates" defining the world, characters, and initial plot, and then embark on unique "Adventures" based on these templates. The story evolves based on player choices, and the game offers robust tools for managing both scenarios and ongoing adventures.
+ImaginAI (aka Taleon.ai, imagin.ai) lets you craft rich story worlds with **Scenario Templates** and embark on unique **Adventures**. Powered by large language models, the narrative evolves based on your actions and dialogue.
+
+## Key Features
+
+- **Scenario Templates**  
+    Define your world, characters, tags and opening scenes—then save, edit, import/export or duplicate them.  
+- **Adventures**  
+    Launch playthroughs from a template snapshot. Enjoy persistent history, editable turns, retry/continue controls and dynamic in-game settings.  
+- **AI-Driven Storytelling**  
+    Experience branching narratives as the AI adapts to every choice.  
+- **Data Portability**  
+    Backup and share templates or cards via JSON.  
+- **Local Persistence**  
+    All scenarios, adventures and global settings are stored in the browser for offline access.  
 
 ## Table of Contents
 
-- [ImaginAI](#imaginai)
+- [ImaginAI  ](#imaginai--)
+  - [Key Features](#key-features)
   - [Table of Contents](#table-of-contents)
   - [Features](#features)
     - [Scenario Creation \& Management](#scenario-creation--management)
