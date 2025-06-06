@@ -3,7 +3,7 @@
 // src/viewManager.ts
 import * as state from './state';
 import { appElement, scenarioListView, scenarioEditorView, gameplayView, adventureListView } from './domElements';
-import { renderScenarioList, renderAdventureList, renderSettingsModal, renderGameplay, renderScenarioEditor, renderConfirmationModal } from './ui';
+import { renderScenarioList, renderAdventureList, renderSettingsModal, renderGameplay, renderScenarioEditor, renderConfirmationModal, renderTokenStatsModal } from './ui'; // Added renderTokenStatsModal
 import type { View, Scenario, NewScenarioScaffold, Adventure, ActionType, EditorContext, ScenarioEditorContext } from './types';
 import { loadAdventuresFromStorage, saveAdventuresToStorage } from './storage'; 
 import { generateId } from './utils';
@@ -26,31 +26,28 @@ export function navigateTo(view: View, params?: any) {
 
 
   if (view === 'scenarioEditor') {
-    const editorContextParam = params?.context as EditorContext | undefined; // Use the new union type
+    const editorContextParam = params?.context as EditorContext | undefined; 
     if (editorContextParam) {
-        // Ensure the passed context conforms to either ScenarioEditorContext or AdventureEditorContext
         if (editorContextParam.type === 'scenario' || editorContextParam.type === 'adventure') {
             state.setCurrentEditorContext(editorContextParam);
         } else {
             console.error("Attempted to navigate to scenarioEditor with invalid context type:", editorContextParam);
-            // Fallback to creating a new scenario
             state.setCurrentEditorContext({
                 type: 'scenario',
                 data: {
                     name: '', instructions: '', plotEssentials: '', authorsNotes: '', openingScene: '', cards: [],
                     playerDescription: '', tags: '', visibility: 'private'
-                } as NewScenarioScaffold // Ensure new fields are part of the scaffold
+                } as NewScenarioScaffold 
             } as ScenarioEditorContext);
         }
     } else {
         console.error("Attempted to navigate to scenarioEditor without valid context.");
-        // Fallback to creating a new scenario if context is bad or missing
         state.setCurrentEditorContext({
             type: 'scenario',
             data: {
                  name: '', instructions: '', plotEssentials: '', authorsNotes: '', openingScene: '', cards: [],
                  playerDescription: '', tags: '', visibility: 'private'
-            } as NewScenarioScaffold // Ensure new fields are part of the scaffold
+            } as NewScenarioScaffold 
         } as ScenarioEditorContext);
     }
   } else if (view === 'gameplay') {
@@ -68,9 +65,8 @@ export function navigateTo(view: View, params?: any) {
                 timestamp: Date.now()
             }];
         }
-        // Reset gameplay specific states when entering gameplay
         state.setIsPlayerActionInputVisible(false);
-        state.setCurrentPlayerActionType('do'); // Default action type
+        state.setCurrentPlayerActionType('do'); 
     } else {
         console.error("Attempted to navigate to gameplay without a valid adventure.");
         state.setActiveAdventure(null); 
@@ -81,16 +77,10 @@ export function navigateTo(view: View, params?: any) {
     loadAdventuresFromStorage(); 
   }
   
-  // Clear editor context if not navigating to editor
   if (view !== 'scenarioEditor') {
     state.setCurrentEditorContext(null);
   }
-  // Clear active adventure if not in gameplay or editor for adventure
-  if (view !== 'gameplay' && !(view === 'scenarioEditor' && state.currentEditorContext?.type === 'adventure')) {
-    // state.setActiveAdventure(null); // This might be too aggressive, leads to losing active adventure context when opening settings from gameplay
-  }
-
-
+  
   renderApp();
 }
 
@@ -101,9 +91,9 @@ export function renderApp() {
       return;
   }
 
-  // Render modals first (they will decide if they're visible or not)
   renderSettingsModal();
   renderConfirmationModal();
+  renderTokenStatsModal(); // Render token stats modal
 
   if (!API_KEY) {
     let mainContainer = appElement.querySelector('main');
@@ -146,22 +136,24 @@ export function renderApp() {
   }
    setTimeout(() => {
     let headingIdToFocus = '';
-    if (!state.globalSettingsVisible && !state.isConfirmationModalVisible) { // Only focus main view if no modals are open
+    // Prioritize modals for focus
+    if (state.isTokenStatsModalVisible) {
+        headingIdToFocus = 'token-stats-modal-heading';
+    } else if (state.globalSettingsVisible) {
+        headingIdToFocus = 'settings-modal-heading'; 
+    } else if (state.isConfirmationModalVisible) {
+        headingIdToFocus = 'confirmation-modal-heading';
+    } else { // No modal, focus main view
         switch (state.currentView) {
             case 'scenarioList': headingIdToFocus = 'scenario-list-heading'; break;
             case 'adventureList': headingIdToFocus = 'adventure-list-heading'; break;
             case 'scenarioEditor': headingIdToFocus = 'scenario-editor-heading'; break;
             case 'gameplay': headingIdToFocus = 'gameplay-heading'; break;
         }
-    } else if (state.globalSettingsVisible) {
-        headingIdToFocus = 'settings-modal-heading'; 
-    } else if (state.isConfirmationModalVisible) {
-        headingIdToFocus = 'confirmation-modal-heading';
     }
     
     if (headingIdToFocus) {
         const headingElement = document.getElementById(headingIdToFocus) as HTMLElement | null;
-        // Only focus if the element is visible.
         if (headingElement && headingElement.offsetParent !== null) { 
             headingElement?.focus();
         }

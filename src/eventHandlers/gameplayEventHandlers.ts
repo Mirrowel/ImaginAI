@@ -3,18 +3,19 @@
 import * as Rstate from '../state';
 import { generateId } from '../utils';
 import { saveAdventuresToStorage } from '../storage';
-import { renderApp } from '../viewManager'; // Using renderApp for general UI updates
+import { renderApp } from '../viewManager'; 
 import { getAIGeneration } from '../geminiService';
-import type { AdventureTurn, ActionType } from '../types';
-import { renderGameplay } from '../ui/gameplay'; // Specific renderer
-import { showConfirmationModal } from './modalEventHandlers'; // Import for modal
+import type { AdventureTurn, ActionType, TokenUsageStats, AvailableTextModel } from '../types';
+import { renderGameplay } from '../ui/gameplay'; 
+import { showConfirmationModal } from './modalEventHandlers'; 
+import { fetchSpecificModelInputLimit } from '../modelInfoService'; // Import new service
 
 async function generateAndProcessAIResponse(overrideCurrentUserMessage?: string) {
     if (!Rstate.activeAdventure) return;
     const formStatus = document.getElementById('player-action-form-status');
     
     try {
-        const aiResponse = await getAIGeneration(
+        const { response: aiResponse, stats: tokenStats } = await getAIGeneration(
             Rstate.activeAdventure.adventureHistory, 
             Rstate.activeAdventure.scenarioSnapshot.instructions,
             overrideCurrentUserMessage 
@@ -30,7 +31,8 @@ async function generateAndProcessAIResponse(overrideCurrentUserMessage?: string)
             id: generateId(),
             role: 'model',
             text: aiResponseText, 
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            tokenUsage: tokenStats // Store stats with the AI turn
         };
         Rstate.activeAdventure.adventureHistory.push(aiTurn);
         if (formStatus) formStatus.textContent = "Storyteller responded.";
@@ -43,6 +45,7 @@ async function generateAndProcessAIResponse(overrideCurrentUserMessage?: string)
             role: 'model',
             text: `I encountered an error: ${errorText}. Please try again or adjust your last action.`,
             timestamp: Date.now()
+            // No tokenUsage for error turns from app-side
         };
         Rstate.activeAdventure.adventureHistory.push(errorTurn);
         if (formStatus) formStatus.textContent = "Error receiving response from Storyteller.";
@@ -52,10 +55,10 @@ async function generateAndProcessAIResponse(overrideCurrentUserMessage?: string)
             Rstate.activeAdventure.lastPlayedAt = Date.now();
             saveAdventuresToStorage();
         }
-        renderGameplay(); // Use specific renderer
-        if (Rstate.isPlayerActionInputVisible && !Rstate.editingTurnId && !Rstate.globalSettingsVisible && !Rstate.editingAdventureDetailsCardId && !Rstate.showAddAdventureCardForm && !Rstate.isConfirmationModalVisible) {
+        renderGameplay(); 
+        if (Rstate.isPlayerActionInputVisible && !Rstate.editingTurnId && !Rstate.globalSettingsVisible && !Rstate.editingAdventureDetailsCardId && !Rstate.showAddAdventureCardForm && !Rstate.isConfirmationModalVisible && !Rstate.isTokenStatsModalVisible) {
             document.getElementById('player-action')?.focus();
-        } else if (!Rstate.isPlayerActionInputVisible && !Rstate.editingTurnId && !Rstate.globalSettingsVisible && !Rstate.isConfirmationModalVisible) {
+        } else if (!Rstate.isPlayerActionInputVisible && !Rstate.editingTurnId && !Rstate.globalSettingsVisible && !Rstate.isConfirmationModalVisible && !Rstate.isTokenStatsModalVisible) {
              const firstActionButton = document.querySelector('.action-button:not([disabled])') as HTMLButtonElement;
              firstActionButton?.focus();
         }
@@ -75,10 +78,11 @@ async function submitPlayerAction(actionText: string, actionType: ActionType) {
         text: actionText,
         actionType: actionType,
         timestamp: Date.now()
+        // No tokenUsage for user turns
     };
     Rstate.activeAdventure.adventureHistory.push(playerTurn);
     Rstate.setIsLoadingAI(true);
-    renderGameplay(); // Use specific renderer
+    renderGameplay(); 
 
     await generateAndProcessAIResponse();
 }
@@ -185,10 +189,10 @@ export function handleDeleteTurn(turnId: string) {
         message: `Are you sure you want to delete this turn: "${turnTextPreview}"? This action cannot be undone.`,
         confirmText: "Delete Turn",
         onConfirm: () => {
-            if (!Rstate.activeAdventure) return; // Re-check adventure state
+            if (!Rstate.activeAdventure) return; 
             const currentAdventure = Rstate.activeAdventure;
             const currentIndex = currentAdventure.adventureHistory.findIndex(t => t.id === turnId);
-            if (currentIndex === -1) return; // Turn might have been removed by another action
+            if (currentIndex === -1) return; 
 
             currentAdventure.adventureHistory.splice(currentIndex, 1); 
                 
@@ -239,10 +243,46 @@ export async function handleRetryAI() {
     }
 
     if (formStatus) formStatus.textContent = "Retrying last AI response...";
+    // Remove the last AI turn. The prompt will be constructed based on history up to the player turn before it.
     adventure.adventureHistory.splice(lastModelTurnIndex); 
     
     Rstate.setIsLoadingAI(true);
     renderGameplay(); 
 
+    // The prompt will be rebuilt by getAIGeneration based on the modified history
     await generateAndProcessAIResponse();
+}
+
+export async function handleInspectTurn(turnId: string) {
+    if (!Rstate.activeAdventure) return;
+    const adventure = Rstate.activeAdventure;
+    const turnIndex = adventure.adventureHistory.findIndex(t => t.id === turnId);
+    if (turnIndex === -1) return;
+
+    const inspectedTurn = adventure.adventureHistory[turnIndex];
+    let statsToDisplay: TokenUsageStats | undefined | null = null;
+
+    if (inspectedTurn.role === 'model') {
+        statsToDisplay = inspectedTurn.tokenUsage;
+    } else if (inspectedTurn.role === 'user') {
+        if (turnIndex + 1 < adventure.adventureHistory.length) {
+            const nextTurn = adventure.adventureHistory[turnIndex + 1];
+            if (nextTurn.role === 'model') {
+                statsToDisplay = nextTurn.tokenUsage;
+            }
+        }
+    }
+
+    if (statsToDisplay) {
+        // Ensure model input token limit is available
+        if (!Rstate.modelInputTokenLimits[statsToDisplay.modelUsed]) {
+            await fetchSpecificModelInputLimit(statsToDisplay.modelUsed as AvailableTextModel);
+        }
+        Rstate.setTokenStatsForModal(statsToDisplay);
+        Rstate.setIsTokenStatsModalVisible(true);
+    } else {
+        Rstate.setTokenStatsForModal(null);
+        Rstate.setIsTokenStatsModalVisible(true); // Still show modal, but it will display a "no stats" message
+    }
+    renderApp(); // Re-render to show the modal or update it if limit was fetched
 }

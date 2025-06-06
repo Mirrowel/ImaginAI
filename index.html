@@ -301,37 +301,32 @@
       margin-bottom: 1.5rem;
     }
     
-    /* History Log in Gameplay - UPDATED for seamless AI text */
     .history-log {
       scroll-behavior: smooth; 
     }
 
-    .history-item { /* Base style for all history items (AI and User) */
-      padding: 0.8rem 1rem; /* Default padding */
+    .history-item { 
+      padding: 0.8rem 1rem; 
       margin-bottom: 0.8rem;
       border-radius: var(--border-radius);
       position: relative;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.1); /* Subtle shadow for all */
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1); 
       line-height: 1.6;
-      background-color: transparent; /* AI turns blend with main content BG */
-      /* No default border-left here, user-turn will add it */
+      background-color: transparent; 
     }
 
     .history-item.user-turn {
-      border-left: 4px solid var(--primary-accent); /* Player action highlight */
-      background-color: #303035; /* Slightly different for user turns */
-      padding-left: 0.8rem; /* Adjust padding if border takes space from content */
+      border-left: 4px solid var(--primary-accent); 
+      background-color: #303035; 
+      padding-left: 0.8rem; 
     }
     
-    /* Ensure AI turn text (markdown-content) has appropriate padding if needed, 
-       since border-left is gone. Default padding on .history-item should cover it. */
     .history-item:not(.user-turn) {
-        /* Explicitly no border-left or special background */
-        padding-left: 1rem; /* Maintain consistent padding */
+        padding-left: 1rem; 
     }
 
 
-    .history-item strong { /* Speaker: You (for user turns) */
+    .history-item strong { 
       color: var(--heading-color);
       font-weight: 500;
       display: block; 
@@ -355,16 +350,28 @@
         padding: 0.35rem 0.7rem;
         font-size: 0.85rem;
         margin: 0;
+        background-color: var(--background-tertiary); /* Darker for subtle actions */
+        color: var(--text-primary);
+    }
+    .history-item-actions button:hover {
+        background-color: #45454a; /* Slightly lighter on hover */
+    }
+    .history-item-actions button.danger {
+        background-color: var(--danger-accent);
+        color: var(--text-on-accent);
+    }
+    .history-item-actions button.danger:hover {
+        background-color: var(--danger-accent-hover);
     }
 
-    /* Markdown Content Styles */
+
     .markdown-content {
         line-height: 1.6;
     }
     .markdown-content p {
         margin-top: 0.5em;
         margin-bottom: 0.5em;
-        white-space: pre-wrap; /* Allow wrapping for paragraphs */
+        white-space: pre-wrap; 
         word-wrap: break-word;
     }
     .markdown-content p:first-child {
@@ -376,19 +383,19 @@
     .markdown-content ul, .markdown-content ol {
         margin-top: 0.75em;
         margin-bottom: 0.75em;
-        padding-left: 1.8em; /* Indent lists */
+        padding-left: 1.8em; 
     }
     .markdown-content li {
         margin-bottom: 0.25em;
     }
     .markdown-content blockquote {
-        margin-left: 0; /* Reset default */
+        margin-left: 0; 
         margin-top: 0.75em;
         margin-bottom: 0.75em;
         padding: 0.5em 1em;
         border-left: 4px solid var(--border-color);
         color: var(--text-secondary);
-        background-color: #2c2c32; /* Slightly different background for blockquote */
+        background-color: #2c2c32; 
     }
     .markdown-content code {
         background-color: var(--surface-color);
@@ -413,7 +420,7 @@
         background-color: transparent;
         border-radius: 0;
         border: none;
-        font-size: 1em; /* Inherit from pre */
+        font-size: 1em; 
     }
     .markdown-content a {
       color: var(--link-color);
@@ -437,7 +444,6 @@
     .markdown-content h1 { font-size: 1.5em; }
     .markdown-content h2 { font-size: 1.35em; }
     .markdown-content h3 { font-size: 1.2em; }
-    /* End Markdown Content Styles */
 
 
     .loading-indicator {
@@ -447,7 +453,7 @@
       color: var(--text-secondary);
     }
 
-    .gameplay-sidebar .details-content .form-group { /* Adjust form group margin in sidebar */
+    .gameplay-sidebar .details-content .form-group { 
         margin-bottom: 1rem;
     }
     .gameplay-sidebar pre, .gameplay-sidebar .details-content p, .gameplay-sidebar .info-field p {
@@ -466,13 +472,12 @@
     }
 
 
-    /* Styles for Scenario Editor Tabs */
     .editor-tabs {
         display: flex;
         border-bottom: 2px solid var(--border-color);
         margin-bottom: 1.5rem;
     }
-    .tab-button { /* Base for Scenario Editor Tabs */
+    .tab-button { 
         padding: 0.8rem 1.5rem;
         cursor: pointer;
         background-color: transparent;
@@ -497,9 +502,9 @@
         background-color: var(--background-secondary);
         transform: none;
     }
-    .tab-content { /* Base for Scenario Editor Tabs */
+    .tab-content { 
         padding-top: 1rem;
-        border-top: 1px solid transparent; /* Was used for editor, might not be needed for sidebar tabs */
+        border-top: 1px solid transparent; 
     }
     .tab-content > div {
        animation: fadeIn 0.3s ease-in-out;
@@ -538,13 +543,12 @@
       font-size: 0.9rem;
       margin-top: auto;
       border-top: 1px solid var(--border-color);
-      flex-shrink: 0; /* Prevent footer from shrinking */
+      flex-shrink: 0; 
     }
     footer p {
         margin: 0.5em 0;
     }
 
-    /* Settings Modal Styles */
     .settings-modal-overlay, .confirmation-modal-overlay {
         position: fixed;
         top: 0;
@@ -566,6 +570,8 @@
         max-width: 550px;
         z-index: 1001;
         border-top: 3px solid var(--primary-accent);
+        max-height: 90vh; /* Ensure modal is scrollable if content is too tall */
+        overflow-y: auto; /* Add scroll for tall modals */
     }
     .settings-modal h2, .confirmation-modal h2 {
         margin-top: 0;
@@ -586,14 +592,21 @@
         gap: 0.75rem;
         margin-top: 2rem;
     }
-    .confirmation-modal p { /* Message in confirmation modal */
+    .confirmation-modal p { 
         line-height: 1.6;
         font-size: 1.05rem;
         margin-bottom: 1.5rem;
     }
+    
+    .token-usage-bar div {
+        height: 100%;
+        transition: width 0.3s ease-in-out;
+        text-indent: -9999px; /* Hide text if bar is too small */
+        white-space: nowrap;
+        overflow: hidden;
+    }
 
 
-    /* Accessibility: Focus outline for keyboard navigation */
     button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible, select:focus-visible, [tabindex="0"]:focus-visible {
         outline: var(--focus-outline);
         outline-offset: 2px;
@@ -632,7 +645,6 @@
         box-shadow: 0 0 0 2px var(--primary-accent-hover);
     }
 
-    /* Scenario Editor Cards Tab UI */
     .cards-controls-bar {
         display: flex;
         gap: 1rem;
@@ -640,7 +652,7 @@
         margin-bottom: 1.5rem;
         flex-wrap: wrap;
         padding: 0.75rem;
-        background-color: #303035; /* Slightly different bg for control bar */
+        background-color: #303035; 
         border-radius: var(--border-radius);
     }
     .cards-filter-bar {
@@ -650,11 +662,11 @@
         align-items: center;
     }
     .cards-filter-bar input[type="text"], .cards-filter-bar select {
-        margin-bottom: 0; /* Remove default margin */
+        margin-bottom: 0; 
         flex-grow: 1;
     }
      .cards-filter-bar select {
-        max-width: 200px; /* Limit width of select */
+        max-width: 200px; 
     }
     .display-style-switcher {
         display: flex;
@@ -664,7 +676,7 @@
         padding: 0.5rem 0.8rem;
         font-size: 0.9rem;
         background-color: var(--secondary-accent);
-        margin: 0; /* Remove default button margins */
+        margin: 0; 
     }
     .display-style-switcher button:hover {
         background-color: var(--secondary-accent-hover);
@@ -674,26 +686,24 @@
         color: var(--text-on-accent);
     }
 
-    /* UPDATED GRID STYLES */
     .cards-list-container {
-        display: flex; /* Base for all list types */
-        flex-direction: column; /* Default for list and compact-list */
+        display: flex; 
+        flex-direction: column; 
         width: 100%;
         box-sizing: border-box;
     }
     .cards-list-container.grid-view {
-        flex-direction: row; /* Override for grid */
+        flex-direction: row; 
         flex-wrap: wrap;
-        gap: 1rem; /* Spacing handled by container */
+        gap: 1rem; 
     }
     .card-item.grid-view {
         flex-grow: 1;
-        flex-basis: calc((100% - 2rem) / 3); /* 3 items per row, accounting for 2 gaps */
-        min-width: 250px; /* Ensure cards wrap if container is too narrow */
-        margin: 0; /* Remove individual margins, gap on container handles spacing */
+        flex-basis: calc((100% - 2rem) / 3); 
+        min-width: 250px; 
+        margin: 0; 
         box-sizing: border-box;
     }
-    /* END UPDATED GRID STYLES */
 
     .card-item.list-view {
         width: 100%;
@@ -708,7 +718,6 @@
         display: none;
     }
 
-    /* REVISED Gameplay View Layout Styles */
     .gameplay-header {
         display: flex;
         align-items: center;
@@ -717,11 +726,11 @@
         border-bottom: 1px solid var(--border-color);
         flex-shrink: 0;
     }
-    .gameplay-header #exit-game-btn { /* Moved to left */
-        margin-right: 1rem; /* Space after exit button */
-        margin-top: 0; /* Reset */
+    .gameplay-header #exit-game-btn { 
+        margin-right: 1rem; 
+        margin-top: 0; 
     }
-    .gameplay-header h2 { /* Adventure Name title */
+    .gameplay-header h2 { 
         margin: 0;
         font-size: 1.4rem;
         color: var(--text-primary);
@@ -737,9 +746,8 @@
         font-size: 1.5rem;
         cursor: pointer;
         padding: 0.5rem;
-        margin-left: 1rem;  /* Space from title */
-        /* margin-right: 0.5rem; /* No longer needed as exit button is on left */
-        margin-top: 0; /* Reset */
+        margin-left: 1rem;  
+        margin-top: 0; 
     }
     .sidebar-toggle-button:hover {
         color: var(--primary-accent);
@@ -759,13 +767,12 @@
     .gameplay-sidebar {
         background-color: var(--background-primary);
         overflow-x: hidden; 
-        /* overflow-y: auto;  REMOVED - handled by tab content now */
         transition: width 0.3s ease-in-out, padding-left 0.3s ease-in-out, padding-right 0.3s ease-in-out, border-left-width 0.3s ease-in-out;
         flex-shrink: 0;
         box-sizing: border-box;
         display: flex; 
         flex-direction: column;
-        height: 100%; /* Ensure sidebar itself takes full height of its flex container */
+        height: 100%; 
     }
     .gameplay-sidebar.visible {
         width: var(--sidebar-width);
@@ -783,7 +790,6 @@
         border-left-width: 0;
         overflow: hidden; 
     }
-     /* Gameplay Sidebar Tabs */
     .gameplay-sidebar-tabs {
         display: flex;
         border-bottom: 1px solid var(--border-color);
@@ -817,10 +823,10 @@
         transform: none;
     }
     .gameplay-sidebar-tab-content {
-        flex-grow: 1; /* Allow tab content to take remaining space */
-        overflow-y: auto; /* Scroll within tab content if needed */
-        padding: 0.25rem; /* Small padding around inner tab content */
-        min-height: 0; /* Important for flex-grow in a flex column */
+        flex-grow: 1; 
+        overflow-y: auto; 
+        padding: 0.25rem; 
+        min-height: 0; 
     }
      .gameplay-sidebar-tab-content .form-group {
         margin-bottom: 1rem;
@@ -832,7 +838,6 @@
         margin-right: 0; 
         flex-shrink: 0; 
     }
-    /* Info tab specific styling */
     .info-field {
         margin-bottom: 1rem;
     }
@@ -852,13 +857,12 @@
         flex-grow: 1;
         display: flex;
         flex-direction: column;
-        padding: 1rem; /* Padding around the scrollable content area */
-        overflow-y: auto; /* This makes the main content area scroll */
+        padding: 1rem; 
+        overflow-y: auto; 
         background-color: var(--background-secondary);
         box-sizing: border-box;
     }
 
-    /* Card description truncation in gameplay sidebar */
     .gameplay-sidebar .card-item .card-description-preview {
         overflow: hidden;
         text-overflow: ellipsis;
@@ -935,6 +939,9 @@
   </div>
   <div id="confirmation-modal-container">
     <!-- Confirmation modal will be rendered here by confirmationModalRenderer.ts -->
+  </div>
+  <div id="token-stats-modal-container">
+    <!-- Token Stats modal will be rendered here by tokenStatsModalRenderer.ts -->
   </div>
   <script type="module" src="index.tsx"></script>
 <script type="module" src="/index.tsx"></script>

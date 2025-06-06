@@ -16,7 +16,8 @@ import {
     handleCancelInlineEdit,
     handlePlayerActionTypeButtonClick,
     handlePlayerInputAction,
-} from '../../eventHandlers/index'; // Gameplay specific actions
+    handleInspectTurn, // New handler
+} from '../../eventHandlers/index'; 
 import { renderGameplayHeader } from './gameplayHeaderRenderer';
 import { renderGameplayHistoryLog } from './gameplayHistoryRenderer';
 import { renderGameplayActionArea } from './gameplayActionAreaRenderer';
@@ -44,7 +45,6 @@ export function renderGameplay() {
     </div>
   `;
 
-  // Scroll to bottom of history log if not editing
   const historyLogElement = document.getElementById('history-log');
   if (historyLogElement && !state.editingTurnId) {
       const mainContentArea = gameplayView.querySelector('.gameplay-main-content');
@@ -54,7 +54,6 @@ export function renderGameplay() {
   }
 
   // --- Attach Event Listeners ---
-  // Header
   document.getElementById('exit-game-btn')?.addEventListener('click', () => {
     if (state.activeAdventure) { 
         state.activeAdventure.lastPlayedAt = Date.now();
@@ -72,10 +71,9 @@ export function renderGameplay() {
 
   document.getElementById('sidebar-toggle-btn')?.addEventListener('click', () => {
     state.setIsGameplaySidebarVisible(!state.isGameplaySidebarVisible);
-    renderApp(); // Re-render the whole app to reflect sidebar state change properly
+    renderApp(); 
   });
 
-  // Action Area
   ['do', 'say', 'story'].forEach(type => {
     document.getElementById(`action-type-${type}`)?.addEventListener('click', () => handlePlayerActionTypeButtonClick(type as ActionType));
   });
@@ -83,8 +81,6 @@ export function renderGameplay() {
   const playerActionTextarea = document.getElementById('player-action') as HTMLTextAreaElement;
   if (playerActionTextarea) {
     playerActionTextarea.addEventListener('keydown', handlePlayerInputAction);
-    // Note: The form submission itself is handled by handlePlayerActionSubmit, 
-    // which is typically attached if the form exists (created by renderGameplayActionArea)
     const playerActionForm = document.getElementById('player-action-form');
     playerActionForm?.addEventListener('submit', handlePlayerActionSubmit);
   }
@@ -96,7 +92,6 @@ export function renderGameplay() {
     if (!state.isLoadingAI) handleContinueAI();
   });
 
-  // History Log Items
   gameplayView.querySelectorAll('.edit-turn-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         const turnId = (e.currentTarget as HTMLElement).dataset.turnId;
@@ -107,6 +102,12 @@ export function renderGameplay() {
     btn.addEventListener('click', (e) => {
         const turnId = (e.currentTarget as HTMLElement).dataset.turnId;
         if (turnId) handleDeleteTurn(turnId);
+    });
+  });
+  gameplayView.querySelectorAll('.inspect-turn-btn').forEach(btn => { // New listener
+    btn.addEventListener('click', (e) => {
+        const turnId = (e.currentTarget as HTMLElement).dataset.inspectTurnId;
+        if (turnId) handleInspectTurn(turnId);
     });
   });
   gameplayView.querySelectorAll('.save-inline-edit-btn').forEach(btn => {
@@ -121,11 +122,12 @@ export function renderGameplay() {
     });
   });
 
-  // Sidebar related event listeners are attached within renderGameplaySidebar
-  // and its sub-renderers if they generate interactive elements.
 
   // Focus Management
-  if (state.isGameplaySidebarVisible) {
+  if (state.isTokenStatsModalVisible) { // Prioritize token stats modal focus
+    const closeButton = document.getElementById('token-stats-modal-close-btn');
+    closeButton?.focus();
+  } else if (state.isGameplaySidebarVisible) {
       if (state.editingAdventureDetailsCardId && state.currentGameplaySidebarTab === 'cards') {
           const firstInput = document.getElementById(`edit-card-type-${state.editingAdventureDetailsCardId}`) as HTMLInputElement;
           firstInput?.focus();
@@ -142,12 +144,12 @@ export function renderGameplay() {
     const activeTextarea = document.getElementById(`inline-edit-textarea-${state.editingTurnId}`) as HTMLTextAreaElement;
     activeTextarea?.focus();
     activeTextarea?.select();
-  } else if (state.isPlayerActionInputVisible && !state.isLoadingAI && !state.globalSettingsVisible && !state.editingAdventureDetailsCardId && !state.showAddAdventureCardForm) { 
+  } else if (state.isPlayerActionInputVisible && !state.isLoadingAI && !state.globalSettingsVisible && !state.editingAdventureDetailsCardId && !state.showAddAdventureCardForm && !state.isTokenStatsModalVisible) { 
     playerActionTextarea?.focus();
-  } else if (!state.isPlayerActionInputVisible && !state.isLoadingAI && !state.globalSettingsVisible && !state.editingTurnId && !state.editingAdventureDetailsCardId && !state.showAddAdventureCardForm && !state.isGameplaySidebarVisible) {
+  } else if (!state.isPlayerActionInputVisible && !state.isLoadingAI && !state.globalSettingsVisible && !state.editingTurnId && !state.editingAdventureDetailsCardId && !state.showAddAdventureCardForm && !state.isGameplaySidebarVisible && !state.isTokenStatsModalVisible) {
     const firstActionButton = document.querySelector('.gameplay-action-area .action-button:not([disabled])') as HTMLButtonElement;
     firstActionButton?.focus();
-  } else if (!state.isLoadingAI && !state.globalSettingsVisible && !state.editingTurnId && !state.editingAdventureDetailsCardId && !state.showAddAdventureCardForm && !state.isGameplaySidebarVisible) {
+  } else if (!state.isLoadingAI && !state.globalSettingsVisible && !state.editingTurnId && !state.editingAdventureDetailsCardId && !state.showAddAdventureCardForm && !state.isGameplaySidebarVisible && !state.isTokenStatsModalVisible) {
      const gameplayHeading = document.getElementById('gameplay-heading');
      gameplayHeading?.focus();
   }

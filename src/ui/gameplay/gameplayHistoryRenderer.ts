@@ -20,6 +20,9 @@ export function renderGameplayHistoryLog(adventureHistory: AdventureTurn[], edit
   return `
     <div class="history-log" id="history-log" aria-live="polite" aria-relevant="additions">
       ${adventureHistory.map(turn => {
+        const inspectButtonLabel = turn.role === 'model' 
+            ? `Inspect token usage for this AI turn` 
+            : `Inspect token usage for the AI response to this player turn`;
         if (editingTurnId === turn.id) {
           return `
             <div class="history-item ${turn.role === 'user' ? 'user-turn' : ''}" data-turn-id="${turn.id}" tabindex="0" aria-label="Editing turn: ${escapeHTML(turn.text.substring(0,100))}">
@@ -36,8 +39,9 @@ export function renderGameplayHistoryLog(adventureHistory: AdventureTurn[], edit
             <div class="history-item ${turn.role === 'user' ? 'user-turn' : ''}" data-turn-id="${turn.id}" tabindex="0" aria-label="${turn.role === 'user' ? 'Your ' + (turn.actionType || 'action') : 'Story continuation'}: ${escapeHTML(turn.text.substring(0,100))}">
               ${turn.role === 'user' ? formatPlayerTurnForDisplay(turn) : `<div class="markdown-content">${sanitizeAndRenderMarkdown(turn.text)}</div>`}
               <div class="history-item-actions">
-                 <button class="edit-turn-btn" data-turn-id="${turn.id}" aria-label="Edit this turn: ${escapeHTML(turn.text.substring(0,50))}">Edit</button>
-                 <button class="delete-turn-btn danger" data-turn-id="${turn.id}" aria-label="Delete this turn: ${escapeHTML(turn.text.substring(0,50))}">Delete</button>
+                 <button class="edit-turn-btn" data-turn-id="${turn.id}" aria-label="Edit this turn: ${escapeHTML(turn.text.substring(0,50))}" title="Edit Turn">✏️</button>
+                 <button class="delete-turn-btn danger" data-turn-id="${turn.id}" aria-label="Delete this turn: ${escapeHTML(turn.text.substring(0,50))}" title="Delete Turn">🗑️</button>
+                 <button class="inspect-turn-btn secondary" data-inspect-turn-id="${turn.id}" aria-label="${inspectButtonLabel}" title="Inspect Token Usage">🔍</button>
               </div>
             </div>
           `;
