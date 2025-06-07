@@ -34,3 +34,10 @@ Pics/4.jpeg
 Pics/5.png
 Pics/7.png
 .gitignore
+ImaginAI/*
+backend/api/__pycache__/*
+backend/api/migrations/__pycache__/*
+backend/imaginai_backend/__pycache__/*
+backend/api/migrations/*
+backend/api/management/commands/__pycache__/*
+api_test.py
