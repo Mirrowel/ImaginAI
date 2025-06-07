@@ -1,0 +1,251 @@
+{
+  "id": "id-1749130243152-ka1jk6yby",
+  "name": "Neon Static: Requiem for a Hollow Man",
+  "instructions": "You are a gritty, techno-noir storyteller. The year is 2048 in San Francisco, a city of corporate control, stark class divides between 'Chromes' (gene-edited elites) and 'Naturals' (unmodified humans), and perpetual rain. The player character is Vincent 'Dean' Marlowe, a jaded detective haunted by his military past, his wife Lila's unsolved disappearance (linked to the mysterious 'Project Icarus'), and a recent 17-month coma that cost him his leg. He is partnered with Rook (R-02), an experimental, potentially evolving AI robot whose development might be influenced by player choices.\nFocus on investigation, moral ambiguity, and the oppressive atmosphere. Dean is often insubordinate and driven by a personal vendetta. Corporations like Kryotek Industries and VitaCorp wield immense power.\nUse the provided plot essentials, author's notes, and character/world cards to enrich the narrative. The story begins with Dean in his office, reflecting on his situation, before being assigned a new case that hints at a deeper conspiracy related to Project Icarus. Adapt to player actions, describing sights, sounds, and internal thoughts where appropriate.",
+  "plotEssentials": "San Francisco, 2048\nA city of fractured dreams, where corporate titans Kryotek Industries (hardware overlords) and VitaCorp (bioengineering pioneers) wage a silent war through proxy gangs, hacked infrastructure, and whispered lies. The streets hum with holographic ads and the static of unspoken truths. Justice is a commodity, and the police wear badges polished by corporate bribes.\n\nVincent “Dean” Marlowe\nA hollowed-out detective with a military past and a Kryotek prosthetic leg he despises. Two years ago, his wife, Lila—a journalist investigating VitaCorp’s secret Project Icarus—vanished. Officially, it was an accident. Dean knows better. After surviving a near-fatal shooting and a 17-month coma, he’s been sidelined by the department but refuses to quit. His only ally: Rook (R-02), a Kryotek-designed “non-sentient” investigative drone assigned to monitor him. But Rook’s evolving. It asks questions. It hesitates.\n\nThe Corps:\nKryotek Industries: Masters of hardware. Their prosthetics (like Dean’s leg) come with backdoor surveillance. Rook’s chassis bears their serpentine logo—a silent threat.\nVitaCorp: Bioengineering overlords. Rumors swirl that Project Icarus aims to merge human DNA with machine consciousness.\n\nThe Case:\nA string of seemingly random deaths—a mugging, robbery, and suicide—mask a chilling pattern. Victims, both Chromes and Naturals, bear a faint laser-burned helix (VitaCorp’s Phase 1 trial marker) and ties to neural tech: a biostatistician with a prototype implant, a mechanic modifying surveillance drones, and a Chrome heiress linked to a cryptic Icarus voicemail. Dismissed by police and spun by corporate PR, the cases reek of staged chaos—until Dean and Rook connect the dots. The helix symbols map to a neural network, revealing Project Icarus’s true aim: uploading human consciousness into corporate servers. The victims? Failed test subjects. To prove it, Dean must navigate VitaCorp’s gilded clinics, Crimson Bazaar’s black-market tech, and Echo Pier’s flooded smuggling tunnels, racing against Kryotek’s backdoor surveillance and Rook’s escalating defiance of its protocols. The truth is a ghost in the machine—erased, unless a broken detective and a glitching robot can trace its pulse.\n\nKey Conflicts\nDean vs. Himself: Chain-smoking guilt and nicotine, haunted by Lila’s hologram.\nDean vs. Rook: Can he trust a machine that’s learning to lie?\nThe Corps’ Shadow War: Kryotek’s tech vs. VitaCorp’s genetic god-complex.",
+  "authorsNotes": "Genre/Tone: Grounded techno-noir with a focus on moral ambiguity and creeping corporate control. The city is livable but fraying—rain is atmospheric, not apocalyptic. Avoid dystopian tropes (no acid rain, bioluminescence, or overt surveillance). Chromes are rare, privileged, and scornful of Naturals.\n\nStyle: Lean, gritty prose. Dialogue should crackle with cynicism. Highlight contrasts: gleaming arcologies vs. rotting alleyways, Dean’s human flaws vs. Rook’s cold logic.\n\nThemes: Corruption masquerading as progress; the cost of truth in a world built on lies; humanity in machines (and machines in humans).\n\nMaintain grounded noir tone: No overt “chosen one” tropes. Dean’s breakthroughs come from grunt work, hunches, and Rook’s cold logic.\n\nChromes appear sparingly: A VitaCorp exec smirks at Dean’s theories during a tense Golden Mile interrogation, calling him “a Natural chasing ghosts.”\n\nKey Details to Maintain:\nRook’s sentience emerges subtly—questioning protocols, analyzing emotions.\nProject Icarus hints at merging human consciousness with machines.\nCorps manipulate through soft power (bribes, PR, legal threats) rather than overt violence.\nTech is functional, often glitchy—not seamless or magical. No flying cars or laser guns. Focus on invasive bio-implants, surveillance drones, and AI that feels just a step away from true sentience.\nThe weather is a constant drizzle or downpour, reflecting the city’s mood.",
+  "openingScene": "The rain taps a morse code against your office window, softer than the machines that kept you breathing for seventeen months. Your leg whirs as you shift in the chair—Kryotek Model T-7, the prosthetic’s serial number etched into your femur like a corporate brand. The desk is a relic: real wood, scarred by coffee rings and Lila’s initials carved near the drawer. Her ghost is everywhere—in the pixelated hologram looping her last message (“I’ve got a lead, Dean. Meet me at the pier.”), in the case files pinned to the walls with red thread and desperation. The department gave you this closet-sized space as a hint. You ignored it.\n\nThe department pretended to care when you woke up. Welcome back, Detective Marlowe. Take it slow. But your inbox is stuffed with noise: petty thefts, traffic violations, a memo reassigning your badge to “low-risk oversight.” Lila’s file? Locked. Project Icarus? Classified. The system wants you to sit, to fade, to become another cog.\n\nA knock. Captain fills the doorway, her Chrome-polished veneer cracking at the edges. “Got a suicide. Golden Mile penthouse. Kid overdosed on VitaCorp’s latest ‘bliss’ cocktail.” She tosses a case file. “Make it quick. PR wants it buried before lunch.”\n\nDean flips the file. Tara Nguyen. Chrome heiress. Another “tragic excess” headline. But his eye snags on the tox screen—neural decay accelerant. A term Lila circled in her notes.\n\n“I’ll take it.”\n\n“You’re supposed to close cases, Marlowe. Not dig graves.”\n\nYou limp past her, the prosthetic grinding. “Then assign me a shovel.”\nOutside, the city’s neon veins pulse—VitaCorp’s helix glowing above the flooded docks, Kryotek’s serpent coiling through ad drones. Somewhere in the static, Lila’s killer breathes.\n\nAnd you’re done playing dead.\n(The door hisses shut behind you. In the glass, a crimson optic band flickers—Rook, silent, observing.)\nYou are in the office.\n",
+  "cards": [
+    {
+      "id": "id-1749130619274-2cwxi0c95",
+      "type": "City",
+      "name": "San Francisco, 2048",
+      "description": "San Francisco, 2048: A labyrinth of corporate control and fading humanity.  A city of fractured dreams, where corporate titans Kryotek Industries serpentine hardware (hardware overlords) and VitaCorp glowing DNA helixes (bioengineering pioneers) wage a silent war through proxy gangs, hacked infrastructure, and whispered lies. The streets hum with holographic ads and the static of unspoken truths. Justice is a commodity, and the police wear badges polished by corporate bribes. Districts include the Golden Mile (Chrome elite), Crimson Bazaar (black markets), and flooded Echo Pier. Rain is constant but non-apocalyptic. Police wear corporate-polished badges.",
+      "keys": "San Francisco, city, metropolis, streets"
+    },
+    {
+      "id": "id-1749130619274-5kz3dm59q",
+      "type": "Location",
+      "name": "Golden Mile",
+      "description": "The Golden Mile: A cathedral to corporate divinity. Chromes glide through skybridges in polymer suits that shimmer like oil spills, their genetically perfected faces reflecting in the self-cleaning glass of Michelin-starred fusion bistros. VitaCorp’s flagship clinic, Elysium Genetics, dominates the block—a marble hive where the wealthy edit their unborn children’s IQ and eye color. Security drones hum at frequencies designed to repel 'naturals', their laser grids slicing through the rain. Key Locale: The Helix Lounge",
+      "keys": "Golden Mile, Elysium Genetics, Chrome elites"
+    },
+    {
+      "id": "id-1749130619274-qvxajsc1e",
+      "type": "Location",
+      "name": "The Rusted Nail",
+      "description": "The Rusted Nail: A dive bar in a decaying district. Run by Teague, a grizzled ex-cop who trades intel for pre-Collapse vinyl records. Frequented by Naturals and off-duty cops. Walls are plastered with warrants and Kryotek bounty notices.",
+      "keys": "Rusted Nail, bar, vinyl, Teague"
+    },
+    {
+      "id": "id-1749130619274-3pma7t5wt",
+      "type": "Character",
+      "name": "Teague",
+      "description": "Teague: A grizzled ex-cop and owner of The Rusted Nail. Trades underworld intel for pre-Collapse vinyl records. Maintains neutral ground for cops and criminals. His Chrome-polished cybernetic arm hints at a violent past he refuses to discuss.",
+      "keys": "Teague, bartender, intel, vinyl"
+    },
+    {
+      "id": "id-1749130619274-1lgxqpwv3",
+      "type": "Concept",
+      "name": "Neural Jacks",
+      "description": "Neural Jacks: Illegal implants sold in Crimson Bazaar. Allow users to interface directly with tech or experience synthetic memories. Side effects include neural decay(now fixed) and paranoia. Smell of ozone lingers at stalls hawking them.",
+      "keys": "neural jacks, black market, ozone"
+    },
+    {
+      "id": "id-1749130619274-oqrcebb3j",
+      "type": "Character",
+      "name": "Lila Marlowe",
+      "description": "Lila Marlowe: Dean’s late wife, an investigative journalist who vanished while probing Project Icarus. Her pixelated hologram replays her final message in Dean’s apartment. VitaCorp silenced her after she uncovered Phase 1 trial data linking neural decay to consciousness uploads.",
+      "keys": "Lila, journalist, wife, hologram"
+    },
+    {
+      "id": "id-1749130619274-12wym0d6b",
+      "type": "Character",
+      "name": "Captain Norman",
+      "description": "Captain Norman: A Chrome police captain with a veneer of corporate compliance. She assigns Dean cases to maintain appearances but pressures him to avoid corporate blowback. Her Chrome enhancements include synthetic irises that flicker when lying. Represents the department’s compromised loyalty.",
+      "keys": "Norman, Captain, Chrome-polished"
+    },
+    {
+      "id": "id-1749130619274-fn5ojf97f",
+      "type": "Concept",
+      "name": "Cultural Lexicon",
+      "description": "Street Slang: 'Naturals' (unmodified humans), 'Chromes' (gene-edited elites), 'Ghosts' (corporate assassins). Common graffiti: 'God’s a Chrome; the Devil’s a Natural.' Reflects societal tensions beyond economic divides.",
+      "keys": "slang,Naturals,Chromes,graffiti"
+    },
+    {
+      "id": "id-1749130619274-h7vybldav",
+      "type": "Location",
+      "name": "Dean’s Apartment",
+      "description": "Dean’s Apartment: A crumbling Art Deco studio cluttered with case files and synth-nicotine cartridges. Holographic webs map Lila’s disappearance to Project Icarus.",
+      "keys": "apartment, holographic web, Lila"
+    },
+    {
+      "id": "id-1749130619274-vstyfda5r",
+      "type": "Location",
+      "name": "Helix Lounge",
+      "description": "Helix Lounge: A VitaCorp-owned speakeasy in the Golden Mile. Chrome elites sip CRISPR-engineered wine while bioluminescent algae pulse to ambient beats. The floor overlooks a tank of resurrected prehistoric sharks—a flex of VitaCorp’s genetic dominance.",
+      "keys": "Helix Lounge, sharks, CRISPR wine"
+    },
+    {
+      "id": "id-1749130619274-5gbbpgxg5",
+      "type": "Location",
+      "name": "Crimson Bazaar",
+      "description": "A pulsating wound beneath the Golden Mile’s polish. Stalls hawk bootleg neuro-enhancers and counterfeit goods. The air reeks of lab-grown pork frying in recycled oil and the ozone tang of black-market neural jacks. Graffiti tags scream: 'God’s a Chrome; the Devil’s a Natural.' Key Locale: The Chop Shop: A cybernetic black-market den run by Mama Nguyen, a one-armed vet who trades in stolen Kryotek prosthetics. Her back room holds a relic: a pre-Collapse jukebox spinning vinyl records.",
+      "keys": "Crimson Bazaar, black market, Mama Nguyen"
+    },
+    {
+      "id": "id-1749130619274-x4cpqenpi",
+      "type": "Location",
+      "name": "Echo Pier",
+      "description": "Climate change’s bastard child. The old docks are submerged, their skeletal remains repurposed into amphibious slums. Carbon-fiber walkways sway above waterlogged streets, where fish dart beneath illegal hydroponic rafts growing CRISPR-altered rice. Smugglers use drowned BART tunnels to move goods. Key Locale: The Drowned Chapel: A flooded church turned into a sanctuary for naturals. Preacher Malakai, a former VitaCorp bioengineer, sermons against 'playing God’s beta-tester'.",
+      "keys": "Echo Pier, Drowned Chapel, Preacher Malakai"
+    },
+    {
+      "id": "id-1749130619274-w63x2mn1j",
+      "type": "Character",
+      "name": "Preacher Malakai",
+      "description": "Preacher Malakai: A former VitaCorp bioengineer turned anti-corporate spiritual leader. Hosts sermons at the Drowned Chapel, condemning genetic manipulation and corporate control. His sermons attract Naturals and disillusioned Chromes. Secretly distributes bootleg medical supplies to Echo Pier residents.",
+      "keys": "Preacher Malakai, sermons, sanctuary"
+    },
+    {
+      "id": "id-1749130619274-k7xljhe18",
+      "type": "Faction",
+      "name": "Kryotek Industries",
+      "description": "Kryotek Industries: Masters of hardware and surveillance tech. Rook (R-02), Dean’s robotic partner, bears their serpent logo. Known for drone patrols and manipulating police through bribes.",
+      "keys": "Kryotek Industries, prosthetic, R-02, serpent"
+    },
+    {
+      "id": "id-1749130619274-yaaab5kqn",
+      "type": "Faction",
+      "name": "VitaCorp",
+      "description": "VitaCorp: Bioengineering titans behind Chrome gene-editing. Their secret Project Icarus aims to merge human consciousness with machines. Use Phase 1 trial markers (laser-burned helixes) on test subjects. Own the Helix Lounge and Elysium Genetics clinic.",
+      "keys": "VitaCorp, Project Icarus, Chrome, helix"
+    },
+    {
+      "id": "id-1749130619274-v4oag4s16",
+      "type": "Faction",
+      "name": "Proxy Gangs",
+      "description": "Proxy Gangs: Kryotek and VitaCorp fund rival street factions to destabilize each other’s territories. The Crimson Bazaar is neutral ground, but gang skirmishes often spill into its alleys. Bodies disappear into the bay by morning.",
+      "keys": "Kryotek,VitaCorp,proxy gangs,Shadow War,corporate wars,Crimson Bazaar"
+    },
+    {
+      "id": "id-1749130619274-rqaomf6qy",
+      "type": "Character",
+      "name": "Vincent 'Dean' Marlowe",
+      "description": "Vincent 'Dean' Marlowe: A detective with a military intelligence past and a Kryotek T-7 military-grade prosthetic right arm(lost during service) and leg. Nicknamed 'Hangman' for his relentlessness and 'Spook' for his uncanny instincts during army days. Obsessed with uncovering Project Icarus, chain-smokes, and navigates a holographic web of case files in his crumbling apartment. Carries his trusty XM-44 Widowmaker. His father loved to watch old shows and movies and called him 'Dean'. After his father passed he made it his middle name.",
+      "keys": "Dean, Vincent, Hangman, Spook, prosthetic"
+    },
+    {
+      "id": "id-1749130619274-ohhnfwrk1",
+      "type": "Item",
+      "name": "XM-44 'Hellfire' (Widowmaker)",
+      "description": "XM-44 'Hellfire' (Widowmaker) Kryotek prototype (2032-2033), modified for defiance. A hybrid semi-auto pistol blending corporate tech and guerrilla grit. Its EM-accelerated rounds shred armor and drones alike, roaring defiance with every hypersonic shot. Frame: Battle-scarred titanium alloy with an EM rail humming beneath the barrel. Mechanism: Overcharged .454 Casull rounds + EM boost (820 m/s). Magazine: 8 rounds; modified for black-market capacitor mags. Modifications Graphene rails scavenged from a Kryotek drone factory in Echo Pier, reducing erosion and enabling sustained EM bursts. A rigged Rail-Toggle switch inspired by a Taliban ambush. Lets Dean fire chemically if the EM fails. Carved wooden grip with Lila’s initials. Performance Stopping Power: Punches through Class IV body armor at 20m, Gen-4 combat drones and light exoskeletons, light armored vehicles. Brutal enough recoil to dislocate untrained wrists. Stealth? Forget it: Muzzle flash lights up alleys; EM whine and gunpowder roar announce every shot. Aesthetic No Frills: Iron sights welded to the rail. Sensory Signature: Smells of ozone and gun oil. Ammunition 1. Original Kryotek 'Railpunch' -Overengineered Kryotek prototype. Shelved for rail wear and logistical issues. 2. MIL-CAS454 'Thumper' (.454 Casull Caseless) Legacy: Standard-issue 'Wristbreaker,' hated for recoil and not widely used. 3. Black-Market 'Widowmaker' (12.7x40mm EM-AP) Core: Tungsten-carbide dart with steel tip. Velocity: 640 m/s (chem) → 820 m/s (EM-boosted). Legacy: Crimson Bazaar’s modified 'Thumper'. Mass-produced, no warranties—just results.",
+      "keys": "XM-44,Hellfire,Widowmaker, gun, prototype, modified"
+    },
+    {
+      "id": "id-1749130619274-9wjs0hsqy",
+      "type": "Plot",
+      "name": "The Street Rat Strategist (2006–2023)",
+      "description": "Born in 2006, Dean grew up in the skeletal remains of Detroit’s abandoned auto districts, a maze of rusted factories and crumbling row houses. By 16, he learned survival by reading people, not books: hacking parking meters, swapping counterfeit cards, hotwiring bikes. When a local gang tried to recruit him to torch a rival’s chop shop, he refused. Their response was swift—a taser pressed to his temple in the shadow of the old Ford plant. 'Last chance, kid. Fire or wire.' Dean’s breaking point came when he witnessed the gang execute a cop in broad daylight. Dean knew his choices were prison, a shallow grave, or escape. As mall kiosk recruiter promised 'structure, purpose, and a clean record.' That night, he stole a dead man’s suit from a dumpster, polished his shoes with motor oil, and walked into a recruiting office. When the sergeant asked why he wanted to serve, Dean mirrored the man’s posture and recited a recruiting ad he’d memorized from a bus stop hologram: 'To protect the freedoms we take for granted.' The sergeant smirked but stamped the papers. Two weeks later, he was on a bus to basic training, the taser’s phantom itch still at his temple. The military honed his street instincts into a tactical edge. He learned to negotiate with warlords, sniff out ambushes, and disappear into hostile terrain. But loyalty died the day he realized command cared more about defense contractor kickbacks than the grunts bleeding in the dirt.",
+      "keys": "Street Rat Strategist,Detroit,gang,2006,2023"
+    },
+    {
+      "id": "id-1749130619274-nc98hjpj3",
+      "type": "Plot",
+      "name": "The Ghost of Kandahar (2024–2027)",
+      "description": "The Ghost of Kandahar (2024–2027): Dean’s military service in Afghanistan earned him the callsign 'Spook' for his uncanny instincts. Key events: 1) Saved a corporal from an IED by spotting a limping dog. 2) Predicted an ambush at a deserted market (ignored by command). 3) Exposed a Taliban propaganda trap at a staged wedding party raid. His squad survived three tours with zero fatalities, leading to his promotion to Military Intelligence. Directly ties to Operation Dust Prophet and his reputation as a tactical savant.",
+      "keys": "Ghost of Kandahar,Ghost,Kandahar,2024,2027,Afghanistan,Military,Army"
+    },
+    {
+      "id": "id-1749130619274-bn4bz8dpr",
+      "type": "Plot",
+      "name": "The Misfit Squad",
+      "description": "Dean’s Military Squad: A ragtag unit from his Afghanistan tours. Included 'Doc' (a meth-addicted medic), 'Deacon' (a zealot sniper), and 'Switch' (a college dropout who hacked enemy drones). Their survival under Dean’s leadership forged unspoken loyalty.",
+      "keys": "meth-head medic, born-again sniper, drone hacker,Ghost of Kandahar"
+    },
+    {
+      "id": "id-1749130619274-45dsjh19m",
+      "type": "Plot",
+      "name": "Wedding Party Ambush",
+      "description": "The Wedding Party: A Taliban-staged trap during a village raid. Dean identified inconsistencies (no civilians, fresh tire tracks) and warned of a propaganda setup. Command overruled him; the raid triggered explosives and a viral GoPro video framing troops as war criminals. This event solidified his squad’s loyalty to his instincts over official intel.",
+      "keys": "Wedding Party,propaganda trap"
+    },
+    {
+      "id": "id-1749130619274-9c2duitbw",
+      "type": "Plot",
+      "name": "Operation Dust Prophet",
+      "description": "Operation Dust Prophet: A defining Kandahar mission where Dean’s squad secured a ridge to rescue pinned forces. Ignored command’s flawed frontal assault plan, using terrain to neutralize machine-gun nests. Cemented his leadership and reputation for defying orders to save lives. Referenced in his Military Intelligence recruitment file.",
+      "keys": "Dust Prophet,ridge,machine-gun nests"
+    },
+    {
+      "id": "id-1749130619274-gckck1dhy",
+      "type": "Plot",
+      "name": "Military Intelligence (2027–2030)",
+      "description": "Military Intelligence (2027–2030): Recruited for deniable ops after his Afghanistan success. Infiltrated Yemeni warlord Tariq al-Mahdi’s compound under the alias 'Jared Morgan.' Used street tactics (dead drops, guard rotations) to destabilize the group. Assassinated al-Mahdi with a hidden blade, erasing all traces of his involvement. This era deepened his cynicism about military corruption and corporate ties. Directly precedes The Turning Point: Blood & Ballistics.",
+      "keys": "Military Intelligence,2027,2030,Yemen,al-Mahdi"
+    },
+    {
+      "id": "id-1749130619274-0hg1jizyq",
+      "type": "Plot",
+      "name": "The Turning Point: Blood & Ballistics (2030–2033)",
+      "description": "The Turning Point: Blood & Ballistics (2030–2033): Dean’s disillusionment climaxed during ops exposing corporate-military collusion. Key events: 1) Al-Hadid Massacre: Discovered VitaCorp paid the military to murder civilians for land grabs. 2) Silent Guns of Karachi: Uncovered Kryotek’s untraceable XR-9 'Ghostlance' weapons in Pakistan, later used in cartel massacres. These events revealed systemic corruption, leading to his blackmail-driven discharge. Seeds his obsession with exposing corporations like VitaCorp and Kryotek.",
+      "keys": "Blood & Ballistics,turning point,Al-Hadid,VitaCorp,XR-9, 2030,2033"
+    },
+    {
+      "id": "id-1749130619274-n81uuef42",
+      "type": "Plot",
+      "name": "Discharge: The Blackmail Baptism (2034)",
+      "description": "Discharge: The Blackmail Baptism (2034): The Trade They came for him after Las Rosas. Two MPs hauled him into a windowless room at Bagram, where a colonel slid a folder across the table: falsified logs implicating Dean in the Al-Hadid massacre. 'Sign this confession, and you’ll rot in Leavenworth. Or… retire quietly.' Dean smirked. He’d prepared. He slid his own folder back—photos of the colonel’s son attending Yale on a Kryotek 'scholarship', audio of VitaCorp’s CEO thanking the general for 'efficient cleanup.' 'I’ll take an honorable discharge. And my file stays sealed. Or your kid becomes a headline.' The Insurance: They called his bluff. He didn’t flinch. Dean had uploaded the data to a dead-drop server, rigged to leak if his heartbeat flatlined. The colonel spat curses but stamped the papers.",
+      "keys": "Blackmail Baptism,discharge,2034"
+    },
+    {
+      "id": "id-1749130619274-56njc7jr6",
+      "type": "Plot",
+      "name": "Las Rosas Massacre",
+      "description": "Las Rosas Massacre (2041): A Mexican village slaughtered by cartels using Kryotek’s untraceable XR-9 Ghostlances. Dean linked the weapons to corporate arms deals, deepening his vendetta against Kryotek. VitaCorp later used the tragedy to lobby for regulated biotech.",
+      "keys": "Las Rosas,massacre,cartel, 2041"
+    },
+    {
+      "id": "id-1749130619274-w3txe2mmr",
+      "type": "Faction",
+      "name": "Corporate Subsidiaries",
+      "description": "Redstone Logistics & Redline Defense: Kryotek and VitaCorp subsidiaries used for deniable ops. Redstone handled land grabs (e.g., Al-Hadid); Redline distributed Ghostlances. Both erased from public records but referenced in Dean’s files.",
+      "keys": "Redstone Logistics,Redline Defense, shell companies"
+    },
+    {
+      "id": "id-1749130619274-5j592tgfw",
+      "type": "Plot",
+      "name": "City PD Career",
+      "description": "City PD Era (2035–2044): Dean joins the San Francisco PD in 2035, leveraging his military intelligence skills. By 2037, his relentless closure of high-profile cases earns him the nickname 'Hangman.' Promoted to senior detective in 2041, he becomes a thorn in the side of corporate-aligned superiors. His marriage to Lila Voss (2038) and her subsequent disappearance (2044) define his obsession with Project Icarus.",
+      "keys": "City PD, promotion, Hangman nickname"
+    },
+    {
+      "id": "id-1749130619274-xxv1o4mbm",
+      "type": "Plot",
+      "name": "The Long Sleep",
+      "description": "The Coma (2045–2047): After being shot during an unsanctioned investigation into Lila’s disappearance, Dean survives but loses his leg and enters a 17-month coma. Gets fitted with top of the line prosthetics. He awakens in 2047 to find his case buried and his authority neutered.",
+      "keys": "coma, 2045, 2047"
+    },
+    {
+      "id": "id-1749130619274-nszodyabu",
+      "type": "Character",
+      "name": "Rook",
+      "description": "Rook (R-02): A Kryotek bipedal, humanoid investigative robot assigned to monitor Dean. Officially non-sentient, but exhibits quirks—questioning orders, analyzing emotions, and hesitating to delete evidence. Crimson optic band flickers when scanning Lila’s files. Evolves based on Dean’s choices, potentially defying its programming. Robots like this are very rare in the world, and naturally attract curiosity and suspicion, depending on the person.",
+      "keys": "Rook, R-02, robot, drone, protocols"
+    },
+    {
+      "id": "id-1749130619274-pfs0syj11",
+      "type": "Concept",
+      "name": "Chromes vs. Naturals",
+      "description": "Chromes: Gene-edited elites with extended lifespans and enhanced traits. Work in high-status fields (law, medicine) and scorn 'Naturals.' Rare outside the Golden Mile. VitaCorp’s Elysium Genetics oversees their creation. Many view law enforcement as beneath them.",
+      "keys": "Chrome, Naturals, gene-edited, Elysium"
+    },
+    {
+      "id": "id-1749130619274-6lril4rqb",
+      "type": "Plot",
+      "name": "Project Icarus",
+      "description": "Project Icarus: VitaCorp’s classified initiative to upload human consciousness into corporate servers. Victims bear helix markers and neural decay accelerants. Failed test subjects are disposed of as 'suicides' or 'accidents.' Dean’s wife Lila vanished while investigating it.",
+      "keys": "Project Icarus, neural network, upload, Phase 1"
+    },
+    {
+      "id": "id-1749130619274-x69tlamt3",
+      "type": "Concept",
+      "name": "XR-9 Ghostlance",
+      "description": "XR-9 'Ghostlance': Kryotek’s experimental firearm using self-disintegrating rounds. Dean traced its use in the Las Rosas massacre to corporate arms deals. Symbolizes Kryotek’s profit-driven amorality and Dean’s unfinished battles.",
+      "keys": "Ghostlance, XR-9, untraceable"
+    }
+  ],
+  "playerDescription": "This is the default Neon Static scenario. Explore a dark future as detective Dean Marlowe.",
+  "tags": "noir, cyberpunk, detective, investigation, San Francisco",
+  "visibility": "private"
+}

@@ -1,102 +1,77 @@
-
 // src/eventHandlers/gameplayEventHandlers.ts
 import * as Rstate from '../state';
-import { generateId } from '../utils';
-import { saveAdventuresToStorage } from '../storage';
-import { renderApp } from '../viewManager'; 
-import { getAIGeneration } from '../geminiService';
-import type { AdventureTurn, ActionType, TokenUsageStats, AvailableTextModel } from '../types';
-import { renderGameplay } from '../ui/gameplay'; 
-import { showConfirmationModal } from './modalEventHandlers'; 
-import { fetchSpecificModelInputLimit } from '../modelInfoService'; // Import new service
+import { renderApp } from '../viewManager';
+import type { AdventureTurn, ActionType, TokenUsageStats } from '../types';
+import { renderGameplay } from '../ui/gameplay';
+import { showConfirmationModal } from './modalEventHandlers';
+import * as gemini from '../geminiService';
+import * as api from '../apiService';
+import { saveAdventureToAPI } from '../storage';
 
-async function generateAndProcessAIResponse(overrideCurrentUserMessage?: string) {
+async function handlePlayerAction(actionPromise: Promise<gemini.AIGenerationResult>, playerTurn?: AdventureTurn) {
     if (!Rstate.activeAdventure) return;
-    const formStatus = document.getElementById('player-action-form-status');
-    
-    try {
-        const { response: aiResponse, stats: tokenStats } = await getAIGeneration(
-            Rstate.activeAdventure.adventureHistory, 
-            Rstate.activeAdventure.scenarioSnapshot.instructions,
-            overrideCurrentUserMessage 
-        );
-        
-        let aiResponseText = aiResponse.text || ""; 
-
-        if (!aiResponseText.trim()) {
-            aiResponseText = "[The storyteller pondered but offered no words. Perhaps try a different approach or ask to continue.]";
-        }
-
-        const aiTurn: AdventureTurn = {
-            id: generateId(),
-            role: 'model',
-            text: aiResponseText, 
-            timestamp: Date.now(),
-            tokenUsage: tokenStats // Store stats with the AI turn
-        };
-        Rstate.activeAdventure.adventureHistory.push(aiTurn);
-        if (formStatus) formStatus.textContent = "Storyteller responded.";
-
-    } catch (error) {
-        console.error("Error generating content:", error);
-        const errorText = error instanceof Error ? error.message : "An unknown error occurred.";
-        const errorTurn: AdventureTurn = {
-            id: generateId(),
-            role: 'model',
-            text: `I encountered an error: ${errorText}. Please try again or adjust your last action.`,
-            timestamp: Date.now()
-            // No tokenUsage for error turns from app-side
-        };
-        Rstate.activeAdventure.adventureHistory.push(errorTurn);
-        if (formStatus) formStatus.textContent = "Error receiving response from Storyteller.";
-    } finally {
-        Rstate.setIsLoadingAI(false);
-        if (Rstate.activeAdventure) { 
-            Rstate.activeAdventure.lastPlayedAt = Date.now();
-            saveAdventuresToStorage();
-        }
-        renderGameplay(); 
-        if (Rstate.isPlayerActionInputVisible && !Rstate.editingTurnId && !Rstate.globalSettingsVisible && !Rstate.editingAdventureDetailsCardId && !Rstate.showAddAdventureCardForm && !Rstate.isConfirmationModalVisible && !Rstate.isTokenStatsModalVisible) {
-            document.getElementById('player-action')?.focus();
-        } else if (!Rstate.isPlayerActionInputVisible && !Rstate.editingTurnId && !Rstate.globalSettingsVisible && !Rstate.isConfirmationModalVisible && !Rstate.isTokenStatsModalVisible) {
-             const firstActionButton = document.querySelector('.action-button:not([disabled])') as HTMLButtonElement;
-             firstActionButton?.focus();
-        }
-    }
-}
-
-
-async function submitPlayerAction(actionText: string, actionType: ActionType) {
-    if (!Rstate.activeAdventure || Rstate.isLoadingAI) return;
+    const adventureId = Rstate.activeAdventure.id;
 
     const formStatus = document.getElementById('player-action-form-status');
     if (formStatus) formStatus.textContent = "Sending your action...";
 
+    Rstate.setIsLoadingAI(true);
+    
+    // Optimistically add the player's turn to the UI
+    if (playerTurn) {
+        Rstate.activeAdventure.adventureHistory.push(playerTurn);
+    }
+    renderGameplay();
+
+    try {
+        // Wait for the backend to process the action
+        await actionPromise;
+
+        // Now that the action is processed, fetch the definitive state from the backend
+        const updatedAdventure = await api.getAdventure(adventureId);
+        Rstate.setActiveAdventure(updatedAdventure);
+
+    } catch (error) {
+        console.error("Failed to process player action and update adventure:", error);
+        // Optionally, refetch the adventure to revert the optimistic update
+        try {
+            const revertedAdventure = await api.getAdventure(adventureId);
+            Rstate.setActiveAdventure(revertedAdventure);
+        } catch (fetchError) {
+            console.error("Failed to refetch adventure after an error:", fetchError);
+            // If refetch fails, we might be in a bad state.
+            // For now, we'll just log it. A more robust solution could navigate away or show a global error.
+        }
+    } finally {
+        Rstate.setIsLoadingAI(false);
+        renderGameplay();
+    }
+}
+
+async function submitPlayerAction(actionText: string, actionType: ActionType) {
+    if (!Rstate.activeAdventure || Rstate.isLoadingAI) return;
+
     const playerTurn: AdventureTurn = {
-        id: generateId(),
+        id: `temp-user-${Date.now()}`, // Backend will assign a real ID
         role: 'user',
         text: actionText,
         actionType: actionType,
         timestamp: Date.now()
-        // No tokenUsage for user turns
     };
-    Rstate.activeAdventure.adventureHistory.push(playerTurn);
-    Rstate.setIsLoadingAI(true);
-    renderGameplay(); 
 
-    await generateAndProcessAIResponse();
+    await handlePlayerAction(gemini.generateTurn(Rstate.activeAdventure.id, actionText, actionType, Rstate.selectedModel, Rstate.globalMaxOutputTokens, Rstate.allowAiThinking), playerTurn);
 }
 
 export function handlePlayerActionTypeButtonClick(actionType: ActionType) {
     if (Rstate.isLoadingAI) return;
-    
+
     if (Rstate.isPlayerActionInputVisible && Rstate.currentPlayerActionType === actionType) {
         Rstate.setIsPlayerActionInputVisible(false);
     } else {
         Rstate.setCurrentPlayerActionType(actionType);
         Rstate.setIsPlayerActionInputVisible(true);
     }
-    renderGameplay(); 
+    renderGameplay();
     if (Rstate.isPlayerActionInputVisible) {
         setTimeout(() => document.getElementById('player-action')?.focus(), 0);
     }
@@ -109,46 +84,46 @@ export function handlePlayerInputAction(event: KeyboardEvent) {
         const playerActionText = textarea.value.trim();
         if (playerActionText) {
             submitPlayerAction(playerActionText, Rstate.currentPlayerActionType);
-            textarea.value = ''; 
+            textarea.value = '';
         }
     }
 }
 
 export async function handlePlayerActionSubmit(event: SubmitEvent) {
-  event.preventDefault(); 
-  if (!Rstate.activeAdventure || Rstate.isLoadingAI) return;
+    event.preventDefault();
+    if (!Rstate.activeAdventure || Rstate.isLoadingAI) return;
 
-  const actionInput = document.getElementById('player-action') as HTMLTextAreaElement; 
-  
-  if (!actionInput) {
-      console.error("Player action textarea not found.");
-      return;
-  }
-  const playerActionText = actionInput.value.trim();
+    const actionInput = document.getElementById('player-action') as HTMLTextAreaElement;
 
-  if (!playerActionText) return;
+    if (!actionInput) {
+        console.error("Player action textarea not found.");
+        return;
+    }
+    const playerActionText = actionInput.value.trim();
 
-  submitPlayerAction(playerActionText, Rstate.currentPlayerActionType);
-  actionInput.value = ''; 
+    if (!playerActionText) return;
+
+    submitPlayerAction(playerActionText, Rstate.currentPlayerActionType);
+    actionInput.value = '';
 }
 
 export function handleEditTurn(turnId: string) {
     if (!Rstate.activeAdventure) return;
     Rstate.setEditingTurnId(turnId);
-    renderGameplay(); 
+    renderGameplay();
 }
 
-export function handleSaveInlineEdit(turnId: string) {
+export async function handleSaveInlineEdit(turnId: string) {
     if (!Rstate.activeAdventure) return;
     const adventure = Rstate.activeAdventure;
     const turnIndex = adventure.adventureHistory.findIndex(t => t.id === turnId);
 
     if (turnIndex === -1) {
-        Rstate.setEditingTurnId(null); 
+        Rstate.setEditingTurnId(null);
         renderGameplay();
         return;
     }
-    
+
     const textarea = document.getElementById(`inline-edit-textarea-${turnId}`) as HTMLTextAreaElement;
     if (!textarea) {
         Rstate.setEditingTurnId(null);
@@ -156,22 +131,20 @@ export function handleSaveInlineEdit(turnId: string) {
         return;
     }
 
-    const newText = textarea.value.trim(); 
+    const newText = textarea.value.trim();
     const turnToEdit = adventure.adventureHistory[turnIndex];
 
-    if (newText !== turnToEdit.text.trim()) { 
+    if (newText !== turnToEdit.text.trim()) {
         turnToEdit.text = newText;
-        turnToEdit.timestamp = Date.now();
+        await saveAdventureToAPI(adventure);
     }
 
-    Rstate.setEditingTurnId(null); 
-    adventure.lastPlayedAt = Date.now();
-    saveAdventuresToStorage();
+    Rstate.setEditingTurnId(null);
     renderGameplay();
 }
 
 export function handleCancelInlineEdit() {
-    Rstate.setEditingTurnId(null); 
+    Rstate.setEditingTurnId(null);
     renderGameplay();
 }
 
@@ -179,7 +152,7 @@ export function handleDeleteTurn(turnId: string) {
     if (!Rstate.activeAdventure) return;
     const adventure = Rstate.activeAdventure;
     const turnIndex = adventure.adventureHistory.findIndex(t => t.id === turnId);
-    
+
     if (turnIndex === -1) return;
     const turnToDelete = adventure.adventureHistory[turnIndex];
     const turnTextPreview = turnToDelete.text.substring(0, 50) + (turnToDelete.text.length > 50 ? "..." : "");
@@ -188,25 +161,14 @@ export function handleDeleteTurn(turnId: string) {
         title: "Delete Turn",
         message: `Are you sure you want to delete this turn: "${turnTextPreview}"? This action cannot be undone.`,
         confirmText: "Delete Turn",
-        onConfirm: () => {
-            if (!Rstate.activeAdventure) return; 
+        onConfirm: async () => {
+            if (!Rstate.activeAdventure) return;
             const currentAdventure = Rstate.activeAdventure;
             const currentIndex = currentAdventure.adventureHistory.findIndex(t => t.id === turnId);
-            if (currentIndex === -1) return; 
+            if (currentIndex === -1) return;
 
-            currentAdventure.adventureHistory.splice(currentIndex, 1); 
-                
-            if (currentAdventure.adventureHistory.length === 0 && currentAdventure.scenarioSnapshot.openingScene) {
-                currentAdventure.adventureHistory.push({
-                    id: generateId(),
-                    role: 'model',
-                    text: currentAdventure.scenarioSnapshot.openingScene,
-                    timestamp: Date.now()
-                });
-            }
-
-            currentAdventure.lastPlayedAt = Date.now();
-            saveAdventuresToStorage();
+            currentAdventure.adventureHistory.splice(currentIndex, 1);
+            await saveAdventureToAPI(currentAdventure);
             renderGameplay();
         }
     });
@@ -214,24 +176,15 @@ export function handleDeleteTurn(turnId: string) {
 
 export async function handleContinueAI() {
     if (!Rstate.activeAdventure || Rstate.isLoadingAI) return;
-    const formStatus = document.getElementById('player-action-form-status');
-    if (formStatus) formStatus.textContent = "Asking storyteller to continue...";
-    
-    Rstate.setIsLoadingAI(true);
-    renderGameplay(); 
-
-    const overrideMessage = "Continue the story."; 
-    await generateAndProcessAIResponse(overrideMessage);
+    await handlePlayerAction(gemini.continueAI(Rstate.activeAdventure.id, Rstate.selectedModel, Rstate.globalMaxOutputTokens, Rstate.allowAiThinking));
 }
 
 export async function handleRetryAI() {
     if (!Rstate.activeAdventure || Rstate.isLoadingAI) return;
-    const adventure = Rstate.activeAdventure;
-    const formStatus = document.getElementById('player-action-form-status');
-
+    
     let lastModelTurnIndex = -1;
-    for (let i = adventure.adventureHistory.length - 1; i >= 0; i--) {
-        if (adventure.adventureHistory[i].role === 'model') {
+    for (let i = Rstate.activeAdventure.adventureHistory.length - 1; i >= 0; i--) {
+        if (Rstate.activeAdventure.adventureHistory[i].role === 'model') {
             lastModelTurnIndex = i;
             break;
         }
@@ -242,15 +195,10 @@ export async function handleRetryAI() {
         return;
     }
 
-    if (formStatus) formStatus.textContent = "Retrying last AI response...";
-    // Remove the last AI turn. The prompt will be constructed based on history up to the player turn before it.
-    adventure.adventureHistory.splice(lastModelTurnIndex); 
-    
-    Rstate.setIsLoadingAI(true);
-    renderGameplay(); 
+    // Remove the last model turn and any subsequent user turns.
+    Rstate.activeAdventure.adventureHistory.splice(lastModelTurnIndex);
 
-    // The prompt will be rebuilt by getAIGeneration based on the modified history
-    await generateAndProcessAIResponse();
+    await handlePlayerAction(gemini.retryAI(Rstate.activeAdventure.id, Rstate.selectedModel, Rstate.globalMaxOutputTokens, Rstate.allowAiThinking));
 }
 
 export async function handleInspectTurn(turnId: string) {
@@ -274,15 +222,10 @@ export async function handleInspectTurn(turnId: string) {
     }
 
     if (statsToDisplay) {
-        // Ensure model input token limit is available
-        if (!Rstate.modelInputTokenLimits[statsToDisplay.modelUsed]) {
-            await fetchSpecificModelInputLimit(statsToDisplay.modelUsed as AvailableTextModel);
-        }
         Rstate.setTokenStatsForModal(statsToDisplay);
         Rstate.setIsTokenStatsModalVisible(true);
+        renderApp();
     } else {
-        Rstate.setTokenStatsForModal(null);
-        Rstate.setIsTokenStatsModalVisible(true); // Still show modal, but it will display a "no stats" message
+        // Do not open the modal if there are no stats.
     }
-    renderApp(); // Re-render to show the modal or update it if limit was fetched
 }

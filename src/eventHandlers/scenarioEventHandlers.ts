@@ -1,24 +1,21 @@
-
 // src/eventHandlers/scenarioEventHandlers.ts
 import * as Rstate from '../state';
-import { generateId } from '../utils';
-import { saveScenariosToStorage } from '../storage'; // Removed saveDefaultScenarioTemplate
+import { deleteScenario, duplicateScenario, exportScenario } from '../apiService';
+// import { saveScenariosToStorage } from '../storage'; // Removed local storage import
 import { navigateTo, renderApp } from '../viewManager';
-import type { Scenario, NewScenarioScaffold, Card } from '../types';
+import type { Scenario, NewScenarioScaffold } from '../types';
 import { renderScenarioList } from '../ui/scenarioListRenderer';
 import { showConfirmationModal } from './modalEventHandlers'; // Import for modal
 
 // REMOVED: handleSaveDefaultScenarioTemplateData
 
-export function handleSaveScenarioData(formData: FormData, scenarioBeingEdited: Scenario | NewScenarioScaffold) {
+export async function handleSaveScenarioData(formData: FormData, scenarioBeingEdited: Scenario | NewScenarioScaffold) { // Made async
     // Cards are sourced from the context if available, scenarioBeingEdited might be stale for cards
-     const currentCards = (Rstate.currentEditorContext?.type === 'scenario') 
-        ? Rstate.currentEditorContext.data.cards 
+     const currentCards = (Rstate.currentEditorContext?.type === 'scenario')
+        ? Rstate.currentEditorContext.data.cards
         : scenarioBeingEdited.cards;
 
-
-    const scenarioToSave: Scenario = {
-        id: ('id' in scenarioBeingEdited && scenarioBeingEdited.id) ? scenarioBeingEdited.id : generateId(),
+    const scenarioData: Partial<Scenario> = {
         name: formData.get('name') as string || 'Untitled Scenario',
         instructions: formData.get('instructions') as string || '',
         plotEssentials: formData.get('plotEssentials') as string || '',
@@ -30,112 +27,174 @@ export function handleSaveScenarioData(formData: FormData, scenarioBeingEdited: 
         visibility: formData.get('visibility') as Scenario['visibility'] || ('visibility' in scenarioBeingEdited ? scenarioBeingEdited.visibility : "private"),
     };
 
-    if ('id' in scenarioBeingEdited && scenarioBeingEdited.id) { // Existing scenario
-        const index = Rstate.scenarios.findIndex(s => s.id === scenarioBeingEdited.id);
-        if (index !== -1) {
-            Rstate.scenarios[index] = scenarioToSave;
-        } else {
-            // This case (ID exists but not in list) should be rare. Add it as a new one.
-            console.warn(`Scenario with ID ${scenarioBeingEdited.id} was being edited but not found in list. Adding as new.`);
-            Rstate.scenarios.push(scenarioToSave); 
+    const isExistingScenario = ('id' in scenarioBeingEdited && scenarioBeingEdited.id);
+    const url = isExistingScenario ? `/api/scenarios/${scenarioBeingEdited.id}/` : '/api/scenarios/';
+    const method = isExistingScenario ? 'PUT' : 'POST'; // Use PUT for update, POST for create
+
+    try {
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                // Include CSRF token if necessary
+                // 'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify(scenarioData),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Failed to save scenario:', response.status, errorData);
+            alert(`Failed to save scenario: ${errorData.detail || JSON.stringify(errorData)}`);
+            return; // Stop if save failed
         }
-    } else { // New scenario
-        Rstate.scenarios.push(scenarioToSave);
+
+        const savedScenario: Scenario = await response.json();
+
+        // Update frontend state after successful backend save
+        if (isExistingScenario) {
+            const index = Rstate.scenarios.findIndex(s => s.id === savedScenario.id);
+            if (index !== -1) {
+                Rstate.scenarios[index] = savedScenario;
+            } else {
+                 // This case (ID exists but not in list) should be rare. Fetch all scenarios to sync.
+                 console.warn(`Scenario with ID ${savedScenario.id} was updated but not found in list. Syncing scenarios.`);
+                 // TODO: Implement fetchScenariosFromBackend and call it here
+                 // For now, just add it if not found (less ideal but prevents data loss in frontend)
+                 Rstate.scenarios.push(savedScenario);
+            }
+        } else { // New scenario
+            Rstate.scenarios.push(savedScenario);
+        }
+
+        // saveScenariosToStorage(); // Remove local storage save
+        Rstate.setCurrentEditorContext(null);
+        Rstate.setEditingScenarioEditorCardId(null);
+        Rstate.setShowAddScenarioCardForm(false);
+        navigateTo('scenarioList');
+
+    } catch (error) {
+        console.error('Error saving scenario:', error);
+        alert('An error occurred while trying to save the scenario.');
     }
-    saveScenariosToStorage();
-    Rstate.setCurrentEditorContext(null);
-    Rstate.setEditingScenarioEditorCardId(null);
-    Rstate.setShowAddScenarioCardForm(false);
-    navigateTo('scenarioList');
 }
 
 export function handleDeleteScenario(scenarioId: string) {
-    const scenarioIndex = Rstate.scenarios.findIndex(s => s.id === scenarioId);
+    console.log(`handleDeleteScenario called with scenarioId: ${scenarioId}`);
+    const idAsNumber = parseInt(scenarioId, 10);
+    const scenarioIndex = Rstate.scenarios.findIndex(s => s.id === idAsNumber);
     const scenarioName = scenarioIndex !== -1 ? Rstate.scenarios[scenarioIndex].name : "this scenario";
 
     showConfirmationModal({
         title: "Delete Scenario Template",
         message: `Are you sure you want to delete the scenario template "${Rstate.scenarios[scenarioIndex]?.name || scenarioId}"? This action cannot be undone and will not delete adventures already started from it.`,
         confirmText: "Delete Template",
-        onConfirm: () => {
+        onConfirm: async () => { // Made async
+            console.log(`Confirmed deletion for scenarioId: ${scenarioId}`);
             if (scenarioIndex === -1) {
                 console.warn("Scenario to delete not found:", scenarioId);
                 return;
             }
-            Rstate.scenarios.splice(scenarioIndex, 1);
-            saveScenariosToStorage();
-            if (Rstate.currentEditorContext?.type === 'scenario' && 'id' in Rstate.currentEditorContext.data && Rstate.currentEditorContext.data.id === scenarioId) {
-                Rstate.setCurrentEditorContext(null);
-                navigateTo('scenarioList');
-            } else {
-                renderApp(); // Re-render current view (scenarioList)
+
+            try {
+                await deleteScenario(scenarioId);
+                console.log(`Successfully deleted scenario with id: ${scenarioId}`);
+
+                // Remove from frontend state only after successful backend delete
+                Rstate.scenarios.splice(scenarioIndex, 1);
+                // saveScenariosToStorage(); // Remove local storage save
+
+                if (Rstate.currentEditorContext?.type === 'scenario' && 'id' in Rstate.currentEditorContext.data && Rstate.currentEditorContext.data.id.toString() === scenarioId) {
+                    Rstate.setCurrentEditorContext(null);
+                    navigateTo('scenarioList');
+                } else {
+                    renderApp(); // Re-render current view (scenarioList)
+                }
+
+            } catch (error) {
+                console.error('Error deleting scenario:', error);
+                alert('An error occurred while trying to delete the scenario.');
             }
         }
     });
 }
 
-export function handleDuplicateScenario(scenarioId: string) {
-    const originalScenario = Rstate.scenarios.find(s => s.id === scenarioId);
+export async function handleDuplicateScenario(scenarioId: string) { // Made async
+    console.log(`handleDuplicateScenario called with scenarioId: ${scenarioId}`);
+    const idAsNumber = parseInt(scenarioId, 10);
+    const originalScenario = Rstate.scenarios.find(s => s.id === idAsNumber);
     if (!originalScenario) {
         alert("Error: Scenario to duplicate not found.");
         return;
     }
 
-    const newScenario: Scenario = JSON.parse(JSON.stringify(originalScenario)); // Deep copy
-    newScenario.id = generateId();
-    newScenario.name = `${originalScenario.name} (Copy)`;
-    newScenario.cards = newScenario.cards.map(card => ({ ...card, id: generateId(), keys: card.keys || "" }));
-    // Ensure all fields from Scenario type are copied or initialized
-    newScenario.playerDescription = originalScenario.playerDescription || "";
-    newScenario.tags = originalScenario.tags || "";
-    newScenario.visibility = originalScenario.visibility || 'private';
+    try {
+        const duplicatedScenario = await duplicateScenario(scenarioId);
+        console.log(`Successfully duplicated scenario with id: ${scenarioId}`, duplicatedScenario);
 
+        // Add the newly duplicated scenario to the frontend state
+        Rstate.scenarios.push(duplicatedScenario);
+        // saveScenariosToStorage(); // Remove local storage save
 
-    Rstate.scenarios.push(newScenario);
-    saveScenariosToStorage();
-    renderScenarioList(); 
-    alert(`Scenario "${originalScenario.name}" duplicated as "${newScenario.name}".`);
+        alert(`Scenario "${originalScenario.name}" duplicated as "${duplicatedScenario.name}".`);
+        renderScenarioList(); // Re-render the scenario list
+
+    } catch (error) {
+        console.error('Error duplicating scenario:', error);
+        alert('An error occurred while trying to duplicate the scenario.');
+    }
 }
 
 // --- Scenario Import/Export Handlers ---
 
-export function handleExportScenario(scenarioId: string) {
-    const scenarioToExport = Rstate.scenarios.find(s => s.id === scenarioId);
+export async function handleExportScenario(scenarioId: string) { // Made async
+    console.log(`handleExportScenario called with scenarioId: ${scenarioId}`);
+    const idAsNumber = parseInt(scenarioId, 10);
+    const scenarioToExport = Rstate.scenarios.find(s => s.id === idAsNumber);
     if (!scenarioToExport) {
         alert("Error: Scenario to export not found.");
         return;
     }
 
-    // Create a clean copy for export, ensuring all fields are present
-    const cleanedScenario: Scenario = {
-        id: scenarioToExport.id, // Keep original ID for export context, new ID on import
-        name: scenarioToExport.name || "Untitled Exported Scenario",
-        instructions: scenarioToExport.instructions || "",
-        plotEssentials: scenarioToExport.plotEssentials || "",
-        authorsNotes: scenarioToExport.authorsNotes || "",
-        openingScene: scenarioToExport.openingScene || "The story begins...",
-        cards: scenarioToExport.cards.map(card => ({
-            id: card.id, // Keep original card ID for export
-            type: card.type || "misc",
-            name: card.name || "Unnamed Card",
-            description: card.description || "",
-            keys: card.keys || ""
-        })),
-        playerDescription: scenarioToExport.playerDescription || "",
-        tags: scenarioToExport.tags || "",
-        visibility: scenarioToExport.visibility || 'private'
-    };
+    try {
+        const scenarioData = await exportScenario(scenarioId);
+        console.log(`Successfully exported scenario with id: ${scenarioId}`, scenarioData);
 
-    const jsonData = JSON.stringify(cleanedScenario, null, 2);
-    const blob = new Blob([jsonData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${cleanedScenario.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_scenario.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+        // Create a clean copy for export, ensuring all fields are present
+        const cleanedScenario: Scenario = {
+            id: scenarioData.id, // Keep original ID for export context, new ID on import
+            name: scenarioData.name || "Untitled Exported Scenario",
+            instructions: scenarioData.instructions || "",
+            plotEssentials: scenarioData.plotEssentials || "",
+            authorsNotes: scenarioData.authorsNotes || "",
+            openingScene: scenarioData.openingScene || "The story begins...",
+            cards: (scenarioData.cards || []).map((rawCard: any) => ({
+                id: rawCard.id, // Keep original card ID for export
+                type: rawCard.type || "misc",
+                name: rawCard.name || "Unnamed Card",
+                description: rawCard.description || "",
+                keys: typeof rawCard.keys === 'string' ? rawCard.keys : ''
+            })),
+            playerDescription: scenarioData.playerDescription || "",
+            tags: scenarioData.tags || "",
+            visibility: scenarioData.visibility || 'private'
+        };
+
+        const jsonData = JSON.stringify(cleanedScenario, null, 2);
+        const blob = new Blob([jsonData], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${cleanedScenario.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_scenario.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+    } catch (error) {
+        console.error('Error exporting scenario:', error);
+        alert('An error occurred while trying to export the scenario.');
+    }
 }
 
 export function handleImportScenarioTrigger() {
@@ -154,14 +213,14 @@ function isValidScenarioImportData(data: any): data is Partial<Scenario> {
     );
 }
 
-export function handleImportScenarioFileSelected(event: Event) {
+export async function handleImportScenarioFileSelected(event: Event) { // Made async
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
 
     const file = input.files[0];
     const reader = new FileReader();
 
-    reader.onload = (e) => {
+    reader.onload = async (e) => { // Made async
         try {
             const content = e.target?.result as string;
             const parsedData = JSON.parse(content);
@@ -171,27 +230,30 @@ export function handleImportScenarioFileSelected(event: Event) {
                 return;
             }
 
-            const importedScenario: Scenario = {
-                id: generateId(), // Assign a NEW unique ID to the imported scenario
-                name: parsedData.name || 'Imported Scenario',
-                instructions: parsedData.instructions || '',
-                plotEssentials: parsedData.plotEssentials || '',
-                authorsNotes: parsedData.authorsNotes || '',
-                openingScene: parsedData.openingScene || 'The story begins...',
-                cards: (parsedData.cards || []).map((rawCard: any) => ({
-                    id: generateId(), // Assign a NEW unique ID to each imported card
-                    type: rawCard.type || 'misc',
-                    name: rawCard.name || 'Unnamed Card',
-                    description: rawCard.description || '',
-                    keys: typeof rawCard.keys === 'string' ? rawCard.keys : ''
-                })),
-                playerDescription: parsedData.playerDescription || "",
-                tags: parsedData.tags || "",
-                visibility: parsedData.visibility || 'private'
-            };
+            // Assuming the backend endpoint for importing a scenario is /api/scenarios/import_scenario/
+            const response = await fetch('/api/scenarios/import_scenario/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Include CSRF token if necessary
+                    // 'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify(parsedData), // Send the parsed data directly
+            });
 
+            if (!response.ok) {
+                 const errorData = await response.json();
+                 console.error('Failed to import scenario:', response.status, errorData);
+                 alert(`Failed to import scenario: ${errorData.detail || JSON.stringify(errorData)}`);
+                 return; // Stop if import failed
+            }
+
+            const importedScenario: Scenario = await response.json();
+
+            // Add the newly imported scenario to the frontend state
             Rstate.scenarios.push(importedScenario);
-            saveScenariosToStorage();
+            // saveScenariosToStorage(); // Remove local storage save
+
             alert(`Scenario "${importedScenario.name}" imported successfully.`);
             renderApp(); // Re-render the scenario list
 
@@ -202,9 +264,9 @@ export function handleImportScenarioFileSelected(event: Event) {
             input.value = ''; // Reset file input
         }
     };
-    reader.onerror = () => { 
-        alert("Error reading the scenario file."); 
-        input.value = ''; 
+    reader.onerror = () => {
+        alert("Error reading the scenario file.");
+        input.value = '';
     };
     reader.readAsText(file);
 }

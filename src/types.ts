@@ -166,3 +166,8 @@ export const TOKEN_STATS_MODAL_COLORS: Record<keyof Pick<TokenUsageStats,
     preciseCardsTokens: '#8c564b', // Chestnut Brown
     preciseCurrentUserMessageTokens: '#e377c2', // Opera Mauve
 };
+
+export interface ModelInfo {
+  display_name: string;
+  input_token_limit: number;
+}

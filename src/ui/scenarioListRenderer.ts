@@ -2,10 +2,10 @@
 // src/ui/scenarioListRenderer.ts
 import { scenarioListView } from '../domElements';
 import * as Rstate from '../state'; // Aliased to Rstate to avoid conflict
-import { escapeHTML, generateId } from '../utils'; 
-import { navigateTo, renderApp } from '../viewManager';
+import { escapeHTML } from '../utils'; 
+import { navigateTo } from '../viewManager';
 import { handleDeleteScenario, handleStartNewAdventure, handleDuplicateScenario, handleExportScenario, handleImportScenarioTrigger } from '../eventHandlers/index';
-import type { NewScenarioScaffold, ScenarioEditorContext, Scenario } from '../types';
+import type { NewScenarioScaffold, ScenarioEditorContext } from '../types';
 // REMOVED: import { loadDefaultScenarioTemplate } from '../storage';
 
 export function renderScenarioList() {
@@ -92,7 +92,7 @@ export function renderScenarioList() {
     btn.addEventListener('click', (e) => {
       // Rstate.setIsEditingDefaultScenarioTemplate(false); // No longer needed
       const scenarioId = (e.target as HTMLElement).getAttribute('data-id');
-      const scenario = Rstate.scenarios.find(s => s.id === scenarioId);
+      const scenario = Rstate.scenarios.find(s => s.id.toString() === scenarioId);
       if (scenario) {
         navigateTo('scenarioEditor', { 
             context: { 

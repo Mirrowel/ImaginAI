@@ -1,84 +1,112 @@
-
 // src/eventHandlers/adventureEventHandlers.ts
 import * as Rstate from '../state';
-import { generateId } from '../utils';
-import { saveAdventuresToStorage } from '../storage';
 import { navigateTo } from '../viewManager';
 import type { Adventure, ScenarioSnapshot } from '../types';
 import { renderAdventureList } from '../ui/adventureListRenderer';
 import { showConfirmationModal } from './modalEventHandlers'; // Import for modal
 
-export function handleSaveAdventureSettingsData(formData: FormData, adventureDataFromContext: Adventure) {
+export async function handleSaveAdventureSettingsData(formData: FormData, adventureDataFromContext: Adventure) { // Made async
     const adventureToUpdate = Rstate.adventures.find(a => a.id === adventureDataFromContext.id);
 
     if (!adventureToUpdate) {
         alert("Error: Cannot find the adventure to save. Please try again.");
         return;
     }
-    
-    adventureToUpdate.adventureName = formData.get('adventureName') as string || adventureToUpdate.adventureName;
-    // Fields from the 'Plot' tab in the editor (which are part of scenarioSnapshot)
-    adventureToUpdate.scenarioSnapshot.instructions = formData.get('instructions') as string || adventureToUpdate.scenarioSnapshot.instructions;
-    adventureToUpdate.scenarioSnapshot.plotEssentials = formData.get('plotEssentials') as string || adventureToUpdate.scenarioSnapshot.plotEssentials;
-    adventureToUpdate.scenarioSnapshot.authorsNotes = formData.get('authorsNotes') as string || adventureToUpdate.scenarioSnapshot.authorsNotes;
-    
-    // Cards are managed by cardEventHandlers and updated directly in Rstate.currentEditorContext.data.scenarioSnapshot.cards
-    // So, we ensure the latest cards from the context are saved.
-    adventureToUpdate.scenarioSnapshot.cards = adventureDataFromContext.scenarioSnapshot.cards;
 
-    // Details tab fields (if they were editable for an adventure, they'd be here)
-    // For now, these are primarily for Scenario, but we ensure snapshot is preserved
-    adventureToUpdate.scenarioSnapshot.playerDescription = adventureDataFromContext.scenarioSnapshot.playerDescription;
-    adventureToUpdate.scenarioSnapshot.tags = adventureDataFromContext.scenarioSnapshot.tags;
-    adventureToUpdate.scenarioSnapshot.visibility = adventureDataFromContext.scenarioSnapshot.visibility;
+    // Prepare data to send to the backend
+    const updatedData: Partial<Adventure> = {
+        adventureName: formData.get('adventureName') as string || adventureToUpdate.adventureName,
+        // Include scenarioSnapshot fields that are editable in this form
+        scenarioSnapshot: {
+            ...adventureToUpdate.scenarioSnapshot, // Keep existing snapshot data
+            instructions: formData.get('instructions') as string || adventureToUpdate.scenarioSnapshot.instructions,
+            plotEssentials: formData.get('plotEssentials') as string || adventureToUpdate.scenarioSnapshot.plotEssentials,
+            authorsNotes: formData.get('authorsNotes') as string || adventureToUpdate.scenarioSnapshot.authorsNotes,
+            // Cards are updated via separate handlers and should already be in adventureDataFromContext
+            cards: adventureDataFromContext.scenarioSnapshot.cards,
+        }
+        // lastPlayedAt will be updated by the backend
+    };
 
-    adventureToUpdate.lastPlayedAt = Date.now();
-    saveAdventuresToStorage();
-    Rstate.setCurrentEditorContext(null); // Clear editor context
-    
-    // If the edited adventure was the active one, navigate back to gameplay
-    if (Rstate.activeAdventure && Rstate.activeAdventure.id === adventureToUpdate.id) {
-        navigateTo('gameplay', { adventure: adventureToUpdate });
-    } else {
-        // Otherwise, if edited from adventure list (e.g. future feature), go back to list
-        navigateTo('adventureList');
+    try {
+        // Assuming the backend endpoint for updating an adventure is /api/adventures/{id}/
+        const response = await fetch(`/api/adventures/${adventureToUpdate.id}/`, {
+            method: 'PATCH', // Use PATCH for partial update
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(updatedData),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Failed to save adventure settings:', response.status, errorData);
+            alert(`Failed to save adventure settings: ${errorData.detail || JSON.stringify(errorData)}`);
+            return; // Stop if save failed
+        }
+
+        const savedAdventure: Adventure = await response.json();
+
+        // Update frontend state with the saved data from the backend
+        const index = Rstate.adventures.findIndex(a => a.id === savedAdventure.id);
+        if (index !== -1) {
+            Rstate.adventures[index] = savedAdventure;
+        } else {
+             console.warn(`Adventure with ID ${savedAdventure.id} was updated but not found in list. Syncing adventures.`);
+             if (Rstate.activeAdventure && Rstate.activeAdventure.id === savedAdventure.id) {
+                 Rstate.setActiveAdventure(savedAdventure);
+             }
+        }
+
+        Rstate.setCurrentEditorContext(null); // Clear editor context
+
+        // If the edited adventure was the active one, navigate back to gameplay
+        if (Rstate.activeAdventure && Rstate.activeAdventure.id === savedAdventure.id) {
+            navigateTo('gameplay', { adventure: savedAdventure });
+        } else {
+            navigateTo('adventureList');
+        }
+
+    } catch (error) {
+        console.error('Error saving adventure settings:', error);
+        alert('An error occurred while trying to save the adventure settings.');
     }
 }
 
-export function handleStartNewAdventure(sourceScenarioId: string) {
-    const sourceScenario = Rstate.scenarios.find(s => s.id === sourceScenarioId);
+export async function handleStartNewAdventure(sourceScenarioId: string) { // Made async
+    console.log(`handleStartNewAdventure called with sourceScenarioId: ${sourceScenarioId}`);
+    const sourceScenario = Rstate.scenarios.find(s => s.id.toString() === sourceScenarioId);
     if (!sourceScenario) {
         alert("Error: Source scenario not found.");
         return;
     }
 
-    const scenarioSnapshot: ScenarioSnapshot = {
-        name: sourceScenario.name,
-        instructions: sourceScenario.instructions,
-        plotEssentials: sourceScenario.plotEssentials,
-        authorsNotes: sourceScenario.authorsNotes,
-        openingScene: sourceScenario.openingScene,
-        cards: JSON.parse(JSON.stringify(sourceScenario.cards.map(c => ({...c, keys: c.keys || ""})))), 
-        playerDescription: sourceScenario.playerDescription,
-        tags: sourceScenario.tags,
-        visibility: sourceScenario.visibility,
-    };
+    try {
+        const response = await fetch('/api/adventures/start/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ scenario_id: sourceScenarioId, adventure_name: `Adventure from "${sourceScenario.name}"` }),
+        });
 
-    const now = Date.now();
-    const newAdventure: Adventure = {
-        id: generateId(),
-        sourceScenarioId: sourceScenario.id,
-        sourceScenarioName: sourceScenario.name,
-        adventureName: `Adventure from "${sourceScenario.name}"`, 
-        scenarioSnapshot,
-        adventureHistory: [], 
-        createdAt: now,
-        lastPlayedAt: now,
-    };
+        if (!response.ok) {
+             const errorData = await response.json();
+             console.error('Failed to start new adventure:', response.status, errorData);
+             alert(`Failed to start new adventure: ${errorData.detail || JSON.stringify(errorData)}`);
+             return;
+        }
 
-    Rstate.adventures.push(newAdventure);
-    saveAdventuresToStorage();
-    navigateTo('gameplay', { adventure: newAdventure });
+        const newAdventure: Adventure = await response.json();
+
+        Rstate.adventures.push(newAdventure);
+
+        navigateTo('gameplay', { adventure: newAdventure });
+
+    } catch (error) {
+        console.error('Error starting new adventure:', error);
+        alert('An error occurred while trying to start a new adventure.');
+    }
 }
 
 export function handleDeleteAdventure(adventureId: string) {
@@ -86,7 +114,7 @@ export function handleDeleteAdventure(adventureId: string) {
         console.error("handleDeleteAdventure: adventureId is undefined or null.");
         return;
     }
-    
+
     const adventure = Rstate.adventures.find(a => a.id === adventureId);
     const adventureName = adventure ? adventure.adventureName : "this adventure";
 
@@ -94,65 +122,123 @@ export function handleDeleteAdventure(adventureId: string) {
         title: "Delete Adventure",
         message: `Are you sure you want to delete the adventure "${adventureName}"? This action cannot be undone.`,
         confirmText: "Delete Adventure",
-        onConfirm: () => {
-            Rstate.setAdventures(Rstate.adventures.filter(a => a.id !== adventureId));
-            saveAdventuresToStorage();
+        onConfirm: async () => { // Made async
+            try {
+                const response = await fetch(`/api/adventures/${adventureId}/`, {
+                    method: 'DELETE',
+                });
 
-            if (Rstate.activeAdventure && Rstate.activeAdventure.id === adventureId) {
-                Rstate.setActiveAdventure(null);
-                Rstate.setEditingTurnId(null);
+                if (!response.ok) {
+                     const errorData = await response.json();
+                     console.error('Failed to delete adventure:', response.status, errorData);
+                     alert(`Failed to delete adventure: ${errorData.detail || JSON.stringify(errorData)}`);
+                     return;
+                }
+
+                Rstate.setAdventures(Rstate.adventures.filter(a => a.id !== adventureId));
+
+                if (Rstate.activeAdventure && Rstate.activeAdventure.id === adventureId) {
+                    Rstate.setActiveAdventure(null);
+                    Rstate.setEditingTurnId(null);
+                }
+
+                navigateTo('adventureList');
+
+            } catch (error) {
+                console.error('Error deleting adventure:', error);
+                alert('An error occurred while trying to delete the adventure.');
             }
-            
-            navigateTo('adventureList'); 
         }
     });
 }
 
-export function handleDuplicateAdventure(adventureId: string) {
+export async function handleDuplicateAdventure(adventureId: string) { // Made async
     const originalAdventure = Rstate.adventures.find(a => a.id === adventureId);
     if (!originalAdventure) {
         alert("Error: Adventure to duplicate not found.");
         return;
     }
 
-    const newAdventure: Adventure = JSON.parse(JSON.stringify(originalAdventure)); // Deep copy
-    newAdventure.id = generateId();
-    newAdventure.adventureName = `${originalAdventure.adventureName} (Copy)`;
-    const now = Date.now();
-    newAdventure.createdAt = now;
-    newAdventure.lastPlayedAt = now;
+    try {
+        // Call the backend duplicate endpoint
+        const response = await fetch(`/api/adventures/${adventureId}/duplicate/`, {
+            method: 'POST', // Use POST for actions
+            headers: {
+                'Content-Type': 'application/json',
+                // Include CSRF token if necessary
+                // 'X-CSRFToken': getCookie('csrftoken'),
+            },
+            // No body needed for this specific duplicate action based on backend implementation
+        });
 
-    newAdventure.scenarioSnapshot.cards = newAdventure.scenarioSnapshot.cards.map(card => ({
-        ...card,
-        id: generateId(),
-        keys: card.keys || ""
-    }));
-    newAdventure.scenarioSnapshot.playerDescription = originalAdventure.scenarioSnapshot.playerDescription;
-    newAdventure.scenarioSnapshot.tags = originalAdventure.scenarioSnapshot.tags;
-    newAdventure.scenarioSnapshot.visibility = originalAdventure.scenarioSnapshot.visibility;
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Failed to duplicate adventure:', response.status, errorData);
+            alert(`Failed to duplicate adventure: ${errorData.detail || JSON.stringify(errorData)}`);
+            return; // Stop if duplication failed
+        }
 
-    newAdventure.adventureHistory = newAdventure.adventureHistory.map(turn => ({
-        ...turn,
-        id: generateId()
-    }));
+        const duplicatedAdventure: Adventure = await response.json();
 
-    Rstate.adventures.push(newAdventure);
-    saveAdventuresToStorage();
-    renderAdventureList(); 
-    alert(`Adventure "${originalAdventure.adventureName}" duplicated as "${newAdventure.adventureName}".`);
+        // Add the newly duplicated adventure to the frontend state
+        Rstate.adventures.push(duplicatedAdventure);
+
+        alert(`Adventure "${originalAdventure.adventureName}" duplicated as "${duplicatedAdventure.adventureName}".`);
+        renderAdventureList(); // Re-render the adventure list
+
+    } catch (error) {
+        console.error('Error duplicating adventure:', error);
+        alert('An error occurred while trying to duplicate the adventure.');
+    }
 }
 
-export function handleAdventureDetailBlur(
-    fieldKey: keyof Pick<ScenarioSnapshot, 'instructions' | 'plotEssentials' | 'authorsNotes'>, 
+export async function handleAdventureDetailBlur( // Made async
+    fieldKey: keyof Pick<ScenarioSnapshot, 'instructions' | 'plotEssentials' | 'authorsNotes'>,
     targetElement: HTMLDivElement
 ) {
     if (!Rstate.activeAdventure) return;
-    const newValue = targetElement.innerText; 
-    
+    const newValue = targetElement.innerText;
+
     if (Rstate.activeAdventure.scenarioSnapshot[fieldKey] !== newValue) {
         Rstate.activeAdventure.scenarioSnapshot[fieldKey] = newValue;
         Rstate.activeAdventure.lastPlayedAt = Date.now();
-        saveAdventuresToStorage();
-        console.log(`Adventure detail '${fieldKey}' auto-saved.`);
+        console.log(`Adventure detail '${fieldKey}' updated in frontend state.`);
+
+        const updateData: Partial<Adventure> = {
+             scenarioSnapshot: {
+                 ...Rstate.activeAdventure.scenarioSnapshot,
+                 [fieldKey]: newValue,
+             }
+        };
+
+        try {
+            const response = await fetch(`/api/adventures/${Rstate.activeAdventure.id}/`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updateData),
+            });
+
+            if (!response.ok) {
+                 const errorData = await response.json();
+                 console.error(`Failed to auto-save adventure detail '${fieldKey}':`, response.status, errorData);
+                 alert(`Failed to auto-save changes: ${errorData.detail || JSON.stringify(errorData)}`);
+            } else {
+                 const savedAdventure: Adventure = await response.json();
+                 const index = Rstate.adventures.findIndex(a => a.id === savedAdventure.id);
+                 if (index !== -1) {
+                     Rstate.adventures[index] = savedAdventure;
+                 }
+                 if (Rstate.activeAdventure && Rstate.activeAdventure.id === savedAdventure.id) {
+                     Rstate.setActiveAdventure(savedAdventure);
+                 }
+                 console.log(`Adventure detail '${fieldKey}' auto-saved successfully.`);
+            }
+
+        } catch (error) {
+            console.error(`Error auto-saving adventure detail '${fieldKey}':`, error);
+            alert('An error occurred while trying to auto-save changes.');
+        }
     }
 }

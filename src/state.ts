@@ -1,6 +1,6 @@
 
 // src/state.ts
-import type { Scenario, AdventureTurn, Card, View, NewScenarioScaffold, ActionType, Adventure, GlobalSettings, ResponseHandlingStrategy, ScenarioSnapshot, EditorContext, AvailableTextModel, GameplaySidebarTab, TokenUsageStats } from './types';
+import type { Scenario, AdventureTurn, View, NewScenarioScaffold, ActionType, Adventure, GlobalSettings, ResponseHandlingStrategy, ScenarioSnapshot, EditorContext, AvailableTextModel, GameplaySidebarTab, TokenUsageStats } from './types';
 import { AVAILABLE_TEXT_MODELS } from './types'; // Import available models
 
 // Core App State
@@ -14,7 +14,6 @@ export let currentEditorContext: EditorContext | null = null;
 
 export let editingAdventure: Adventure | null = null; 
 export let isLoadingAI: boolean = false;
-export let currentCardTypeForEditor: string = 'character'; 
 export let currentPlayerActionType: ActionType = 'do';
 export let isPlayerActionInputVisible: boolean = false; 
 export let editingTurnId: string | null = null;
@@ -67,6 +66,9 @@ export let tokenStatsForModal: TokenUsageStats | null = null;
 
 // Model Information
 export let modelInputTokenLimits: Record<string, number> = {}; // Store for AvailableTextModel -> inputTokenLimit
+export let availableModels: { id: AvailableTextModel, name: string }[] = [];
+export let defaultNonThinkingModel: AvailableTextModel | null = null;
+export let defaultThinkingModel: AvailableTextModel | null = null;
 
 
 // Functions to update state
@@ -92,9 +94,6 @@ export function setEditingAdventure(adventure: Adventure | null) {
 }
 export function setIsLoadingAI(loading: boolean) {
     isLoadingAI = loading;
-}
-export function setCurrentCardTypeForEditor(type: string) {
-    currentCardTypeForEditor = type;
 }
 export function setCurrentPlayerActionType(type: ActionType) {
     currentPlayerActionType = type;
@@ -170,8 +169,8 @@ export function updateGlobalSettings(settings: Partial<GlobalSettings>) {
             setGlobalMaxOutputTokens(200);
         }
     }
-    if (settings.selectedModel !== undefined && AVAILABLE_TEXT_MODELS.includes(settings.selectedModel as AvailableTextModel)) {
-        setSelectedModel(settings.selectedModel as AvailableTextModel);
+    if (settings.selectedModel !== undefined && AVAILABLE_TEXT_MODELS.includes(settings.selectedModel)) {
+        setSelectedModel(settings.selectedModel);
     }
 }
 
@@ -202,4 +201,13 @@ export function setTokenStatsForModal(stats: TokenUsageStats | null) {
 // Setter for Model Information
 export function setModelInputTokenLimits(limits: Record<string, number>) {
     modelInputTokenLimits = { ...modelInputTokenLimits, ...limits };
+}
+
+export function setAvailableModels(models: { id: AvailableTextModel, name: string }[]) {
+    availableModels = models;
+}
+
+export function setDefaultModels(defaults: { default_non_thinking: AvailableTextModel, default_thinking: AvailableTextModel }) {
+    defaultNonThinkingModel = defaults.default_non_thinking;
+    defaultThinkingModel = defaults.default_thinking;
 }

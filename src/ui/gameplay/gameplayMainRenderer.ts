@@ -2,10 +2,8 @@
 // src/ui/gameplay/gameplayMainRenderer.ts
 import { gameplayView } from '../../domElements';
 import * as state from '../../state';
-import { escapeHTML } from '../../utils';
-import type { AdventureTurn, ActionType, AdventureEditorContext } from '../../types';
+import type { ActionType } from '../../types';
 import { navigateTo, renderApp } from '../../viewManager';
-import { saveAdventuresToStorage } from '../../storage';
 import {
     handlePlayerActionSubmit,
     handleEditTurn,
@@ -57,7 +55,7 @@ export function renderGameplay() {
   document.getElementById('exit-game-btn')?.addEventListener('click', () => {
     if (state.activeAdventure) { 
         state.activeAdventure.lastPlayedAt = Date.now();
-        saveAdventuresToStorage();
+        // No longer need to save to storage here, backend handles it.
     }
     state.setActiveAdventure(null);
     state.setEditingTurnId(null); 

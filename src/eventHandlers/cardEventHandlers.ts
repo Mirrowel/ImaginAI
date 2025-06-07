@@ -1,20 +1,17 @@
-
 // src/eventHandlers/cardEventHandlers.ts
 import * as Rstate from '../state';
-import { generateId } from '../utils';
-import { saveAdventuresToStorage } from '../storage'; // For adventure card changes
 import { renderScenarioEditor, renderGameplay } from '../ui'; // UI updaters
 import type { Card } from '../types';
 import { scenarioEditorView } from '../domElements'; // For focusing
+
+// Simple client-side ID generator for temporary items
+const tempId = () => `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
 // --- Scenario Editor Card Handlers ---
 
 export function handleAddCardToEditor() {
     const editorContext = Rstate.currentEditorContext;
     if (!editorContext || editorContext.type !== 'scenario') { // Ensure it's scenario context for this specific handler
-        // If it's adventure context, it might call a different add (e.g. handleAddCardToAdventureSnapshot)
-        // For now, this specifically targets the editor's general card add form.
-        // If the editor is for an adventure, this logic path shouldn't be hit for snapshot cards.
         console.warn("handleAddCardToEditor called in non-scenario or missing context.");
         return;
     }
@@ -40,14 +37,13 @@ export function handleAddCardToEditor() {
         return;
     }
     
-    const newCard: Card = { id: generateId(), type, name, description, keys };
+    const newCard: Card = { id: tempId(), type, name, description, keys };
     
     editorContext.data.cards.push(newCard); 
 
     nameInput.value = '';
     descriptionInput.value = '';
     keysInput.value = '';
-    // typeInput.value = Rstate.currentCardTypeForEditor; // Retain last type used
 
     Rstate.setShowAddScenarioCardForm(false); 
     renderScenarioEditor(); 
@@ -211,7 +207,7 @@ export function handleDuplicateCardInEditor(cardId: string) {
     }
     const originalCard = cardsArrayRef[originalCardIndex];
     const newCard: Card = JSON.parse(JSON.stringify(originalCard)); 
-    newCard.id = generateId();
+    newCard.id = tempId();
     newCard.name = `${originalCard.name} (Copy)`;
     
     cardsArrayRef.splice(originalCardIndex + 1, 0, newCard); 
@@ -310,7 +306,7 @@ export function handleImportCardsFileSelected(event: Event) {
                     }
                 }
                 return {
-                    id: generateId(), 
+                    id: tempId(), 
                     type: rawCard.type || 'misc',
                     name: rawCard.name || 'Unnamed Card',
                     description: rawCard.description || '',
@@ -387,7 +383,7 @@ export function handleImportAIDCardsFileSelected(event: Event) {
             if (!isValidAIDCardImportData(parsedData)) { alert("Invalid AID card data format."); return; }
 
             const importedCardsTransformed: Card[] = parsedData.map(aidCard => ({
-                id: generateId(), type: aidCard.type || 'misc', name: aidCard.title || 'Unnamed Card', description: aidCard.value || aidCard.description || '', keys: (typeof aidCard.keys === 'string' ? aidCard.keys.trim() : "")
+                id: tempId(), type: aidCard.type || 'misc', name: aidCard.title || 'Unnamed Card', description: aidCard.value || aidCard.description || '', keys: (typeof aidCard.keys === 'string' ? aidCard.keys.trim() : "")
             })).filter(card => card.name !== 'Unnamed Card' || card.description);
 
             if (editorContext.type === 'scenario') {
@@ -434,9 +430,9 @@ export function handleCancelAdventureCardEdit() {
     }
 }
 
-export function handleSaveAdventureCardChanges(cardId: string) {
+export async function handleSaveAdventureCardChanges(cardId: string) { // Made async
     if (!Rstate.activeAdventure) return;
-    
+
     const cardIndex = Rstate.activeAdventure.scenarioSnapshot.cards.findIndex(c => c.id === cardId);
     if (cardIndex === -1) {
         console.error("Card to save not found in adventure snapshot:", cardId);
@@ -456,26 +452,48 @@ export function handleSaveAdventureCardChanges(cardId: string) {
         renderGameplay();
         return;
     }
-    
+
     const keys = keysInput.value.trim();
 
-    const updatedCard: Card = {
-        id: cardId,
+    const updatedCardData: Partial<Card> = {
         type: typeInput.value.trim() || 'misc',
         name: nameInput.value.trim(),
         description: descriptionTextarea.value.trim(),
         keys: keys
     };
 
-    if (!updatedCard.name) {
+    if (!updatedCardData.name) {
         alert("Card name cannot be empty.");
         nameInput.focus();
         return;
     }
 
-    Rstate.activeAdventure.scenarioSnapshot.cards[cardIndex] = updatedCard;
-    Rstate.activeAdventure.lastPlayedAt = Date.now();
-    saveAdventuresToStorage();
+    try {
+        const response = await fetch(`/api/adventures/${Rstate.activeAdventure.id}/edit_card_in_snapshot/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ card_id: cardId, updated_card: updatedCardData }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Failed to save adventure card changes:', response.status, errorData);
+            alert(`Failed to save card changes: ${errorData.detail || JSON.stringify(errorData)}`);
+        } else {
+            const responseData = await response.json();
+            console.log("Adventure card changes saved successfully.", responseData);
+
+            Rstate.activeAdventure.scenarioSnapshot.cards[cardIndex] = { ...Rstate.activeAdventure.scenarioSnapshot.cards[cardIndex], ...updatedCardData, id: cardId };
+            Rstate.activeAdventure.lastPlayedAt = Date.now();
+        }
+
+    } catch (error) {
+        console.error('Error saving adventure card changes:', error);
+        alert('An error occurred while trying to save the card changes.');
+    }
+
     Rstate.setEditingAdventureDetailsCardId(null);
     renderGameplay();
     setTimeout(() => {
@@ -485,11 +503,40 @@ export function handleSaveAdventureCardChanges(cardId: string) {
     }, 0);
 }
 
-export function handleDeleteAdventureCard(cardId: string) {
+export async function handleDeleteAdventureCard(cardId: string) { // Made async
     if (!Rstate.activeAdventure) return;
-    Rstate.activeAdventure.scenarioSnapshot.cards = Rstate.activeAdventure.scenarioSnapshot.cards.filter(c => c.id !== cardId);
-    Rstate.activeAdventure.lastPlayedAt = Date.now();
-    saveAdventuresToStorage();
+
+    const cardIndex = Rstate.activeAdventure.scenarioSnapshot.cards.findIndex(c => c.id === cardId);
+    if (cardIndex === -1) {
+        console.error("Card to delete not found in adventure snapshot:", cardId);
+        renderGameplay();
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/adventures/${Rstate.activeAdventure.id}/delete_card_from_snapshot/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ card_id: cardId }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Failed to delete adventure card:', response.status, errorData);
+            alert(`Failed to delete card: ${errorData.detail || JSON.stringify(errorData)}`);
+        } else {
+            Rstate.activeAdventure.scenarioSnapshot.cards.splice(cardIndex, 1);
+            Rstate.activeAdventure.lastPlayedAt = Date.now();
+            console.log("Adventure card deleted successfully.");
+        }
+
+    } catch (error) {
+        console.error('Error deleting adventure card:', error);
+        alert('An error occurred while trying to delete the card.');
+    }
+
     renderGameplay();
     setTimeout(() => {
         const addCardButton = document.getElementById('toggle-add-adventure-card-form-btn');
@@ -520,7 +567,7 @@ export function handleToggleShowAddAdventureCardForm() {
     }, 0);
 }
 
-export function handleAddCardToAdventureSnapshot() {
+export async function handleAddCardToAdventureSnapshot() { // Made async
     if (!Rstate.activeAdventure) return;
 
     const typeInput = document.getElementById('add-adventure-card-type') as HTMLInputElement;
@@ -544,15 +591,49 @@ export function handleAddCardToAdventureSnapshot() {
         return;
     }
 
-    const newCard: Card = { id: generateId(), type, name, description, keys };
-    Rstate.activeAdventure.scenarioSnapshot.cards.push(newCard);
-    Rstate.activeAdventure.lastPlayedAt = Date.now();
-    saveAdventuresToStorage();
-    
+    const newCardData: Partial<Card> = {
+        type: type,
+        name: name,
+        description: description,
+        keys: keys
+    };
+
+    try {
+        const response = await fetch(`/api/adventures/${Rstate.activeAdventure.id}/add_card_to_snapshot/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ card: newCardData }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Failed to add card to adventure snapshot:', response.status, errorData);
+            alert(`Failed to add card: ${errorData.detail || JSON.stringify(errorData)}`);
+        } else {
+            const responseData = await response.json();
+            console.log("Card added to adventure snapshot successfully.", responseData);
+
+            const newCardWithId: Card = { ...newCardData, id: responseData.card_id || tempId() } as Card;
+            Rstate.activeAdventure.scenarioSnapshot.cards.push(newCardWithId);
+            Rstate.activeAdventure.lastPlayedAt = Date.now();
+
+            typeInput.value = '';
+            nameInput.value = '';
+            descriptionInput.value = '';
+            keysInput.value = '';
+        }
+
+    } catch (error) {
+        console.error('Error adding card to adventure snapshot:', error);
+        alert('An error occurred while trying to add the card.');
+    }
+
     Rstate.setShowAddAdventureCardForm(false);
     renderGameplay();
     setTimeout(() => {
-        const newCardElement = document.querySelector(`.card-item[data-card-id="${newCard.id}"]`);
+        const newCardElement = document.querySelector(`.card-item[data-card-id="${Rstate.activeAdventure?.scenarioSnapshot.cards.slice(-1)[0]?.id}"]`);
         newCardElement?.scrollIntoView({ behavior: 'auto', block: 'nearest' });
          (newCardElement?.querySelector('.edit-adventure-card-btn') as HTMLElement)?.focus();
     }, 0);
@@ -566,7 +647,7 @@ export function handleCancelAddAdventureCardForm() {
     }, 0);
 }
 
-export function handleDuplicateAdventureCard(cardId: string) {
+export async function handleDuplicateAdventureCard(cardId: string) { // Made async
     if (!Rstate.activeAdventure) {
         alert("Cannot duplicate card: No active adventure.");
         return;
@@ -578,12 +659,34 @@ export function handleDuplicateAdventureCard(cardId: string) {
         return;
     }
     const originalCard = cardsArrayRef[originalCardIndex];
-    const newCard: Card = JSON.parse(JSON.stringify(originalCard));
-    newCard.id = generateId();
-    newCard.name = `${originalCard.name} (Copy)`;
 
-    cardsArrayRef.splice(originalCardIndex + 1, 0, newCard);
-    Rstate.activeAdventure.lastPlayedAt = Date.now();
-    saveAdventuresToStorage();
-    renderGameplay(); 
+    try {
+        const response = await fetch(`/api/adventures/${Rstate.activeAdventure.id}/duplicate_card_in_snapshot/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ card_id: cardId }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Failed to duplicate adventure card:', response.status, errorData);
+            alert(`Failed to duplicate card: ${errorData.detail || JSON.stringify(errorData)}`);
+        } else {
+            const responseData = await response.json();
+            console.log("Adventure card duplicated successfully.", responseData);
+
+            const duplicatedCard: Card = { ...originalCard, id: responseData.new_card_id || tempId() };
+
+            cardsArrayRef.splice(originalCardIndex + 1, 0, duplicatedCard);
+            Rstate.activeAdventure.lastPlayedAt = Date.now();
+        }
+
+    } catch (error) {
+        console.error('Error duplicating adventure card:', error);
+        alert('An error occurred while trying to duplicate the card.');
+    }
+
+    renderGameplay();
 }

@@ -4,27 +4,19 @@ import * as state from '../state';
 import { escapeHTML } from '../utils'; 
 import { handleSaveGlobalSettings } from '../eventHandlers/index';
 import { renderApp } from '../viewManager';
-import { AVAILABLE_TEXT_MODELS, AvailableTextModel, MODELS_WITH_EXPLICIT_THINKING_CONTROL } from '../types'; 
+import { AvailableTextModel } from '../types';
+import { fetchAndStoreModelInputLimits } from '../modelInfoService';
 
 export function renderSettingsModal() {
     const modalContainer = document.getElementById('settings-modal-container');
     if (!modalContainer) return;
 
     if (!state.globalSettingsVisible) {
-        modalContainer.innerHTML = ''; 
+        modalContainer.innerHTML = '';
         return;
     }
 
-    let modelsForDropdown: ReadonlyArray<AvailableTextModel>;
-    if (state.allowAiThinking) {
-        modelsForDropdown = MODELS_WITH_EXPLICIT_THINKING_CONTROL;
-        if (!modelsForDropdown.includes(state.selectedModel as any) && modelsForDropdown.length > 0) { 
-            state.setSelectedModel(modelsForDropdown[0]);
-        }
-    } else {
-        modelsForDropdown = AVAILABLE_TEXT_MODELS;
-    }
-
+    const modelsForDropdown = state.availableModels;
 
     modalContainer.innerHTML = `
         <div class="settings-modal-overlay" id="settings-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="settings-modal-heading">
@@ -35,9 +27,9 @@ export function renderSettingsModal() {
                         <label for="selected-ai-model">AI Model:</label>
                         <select id="selected-ai-model" name="selectedModel">
                             ${modelsForDropdown.map(model => `
-                                <option value="${model}" ${state.selectedModel === model ? 'selected' : ''}>${escapeHTML(model)}</option>
+                                <option value="${model.id}" ${state.selectedModel === model.id ? 'selected' : ''}>${escapeHTML(model.name)}</option>
                             `).join('')}
-                            ${modelsForDropdown.length === 0 && state.allowAiThinking ? '<option value="" disabled>No models with explicit thinking control available.</option>' : ''}
+                            ${modelsForDropdown.length === 0 ? '<option value="" disabled>No models available.</option>' : ''}
                         </select>
                     </div>
                 
@@ -107,16 +99,19 @@ export function renderSettingsModal() {
 
     const allowThinkingCheckbox = document.getElementById('allow-ai-thinking') as HTMLInputElement;
     if (allowThinkingCheckbox) {
-        allowThinkingCheckbox.addEventListener('change', () => {
+        allowThinkingCheckbox.addEventListener('change', async () => {
             const isChecked = allowThinkingCheckbox.checked;
             state.setAllowAiThinking(isChecked);
 
-            if (isChecked) {
-                if (!MODELS_WITH_EXPLICIT_THINKING_CONTROL.includes(state.selectedModel as any) && MODELS_WITH_EXPLICIT_THINKING_CONTROL.length > 0) {
-                    state.setSelectedModel(MODELS_WITH_EXPLICIT_THINKING_CONTROL[0]);
-                }
-            }
-            renderSettingsModal(); 
+            await fetchAndStoreModelInputLimits(); // Re-fetch models with new thinking state
+            renderSettingsModal(); // Re-render the modal with the new model list
+        });
+    }
+
+    const modelSelector = document.getElementById('selected-ai-model') as HTMLSelectElement;
+    if (modelSelector) {
+        modelSelector.addEventListener('change', () => {
+            state.setSelectedModel(modelSelector.value as AvailableTextModel);
         });
     }
 }

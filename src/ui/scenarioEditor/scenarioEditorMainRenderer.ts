@@ -2,9 +2,8 @@
 // src/ui/scenarioEditor/scenarioEditorMainRenderer.ts
 import { scenarioEditorView } from '../../domElements';
 import * as Rstate from '../../state';
-import { escapeHTML } from '../../utils';
 import type { Scenario, Adventure, NewScenarioScaffold, ScenarioSnapshot } from '../../types';
-import { navigateTo, renderApp } from '../../viewManager';
+import { navigateTo } from '../../viewManager';
 import { 
     handleSaveUnifiedEditorData, 
     handleAddCardToEditor, 
@@ -76,9 +75,15 @@ export function renderScenarioEditor() {
       </div>
 
       <div class="tab-content">
-        ${Rstate.currentScenarioEditorTab === 'plot' ? renderScenarioEditorPlotTab(scenarioDataSource, editorContext.type) : ''}
-        ${Rstate.currentScenarioEditorTab === 'cards' ? renderScenarioEditorCardsTab(scenarioDataSource, Rstate.showAddScenarioCardForm, Rstate.currentCardTypeForEditor, Rstate.editingScenarioEditorCardId, Rstate.scenarioEditorCardSearchTerm, Rstate.scenarioEditorCardFilterType, Rstate.scenarioEditorCardDisplayType) : ''}
-        ${Rstate.currentScenarioEditorTab === 'details' ? renderScenarioEditorDetailsTab(scenarioDataSource, editorContext.type, adventureDataForEditor) : ''}
+        <div id="plot-tab-content" ${Rstate.currentScenarioEditorTab !== 'plot' ? 'hidden' : ''}>
+          ${renderScenarioEditorPlotTab(scenarioDataSource, editorContext.type)}
+        </div>
+        <div id="cards-tab-content" ${Rstate.currentScenarioEditorTab !== 'cards' ? 'hidden' : ''}>
+          ${renderScenarioEditorCardsTab(scenarioDataSource, Rstate.showAddScenarioCardForm, Rstate.editingScenarioEditorCardId, Rstate.scenarioEditorCardSearchTerm, Rstate.scenarioEditorCardFilterType, Rstate.scenarioEditorCardDisplayType)}
+        </div>
+        <div id="details-tab-content" ${Rstate.currentScenarioEditorTab !== 'details' ? 'hidden' : ''}>
+          ${renderScenarioEditorDetailsTab(scenarioDataSource, editorContext.type, adventureDataForEditor)}
+        </div>
       </div>
 
       <div style="margin-top: 2rem;">
@@ -151,7 +156,7 @@ export function renderScenarioEditor() {
     const cardTypeInput = document.getElementById('card-type') as HTMLInputElement;
     if (cardTypeInput) {
          cardTypeInput.addEventListener('input', () => {
-             Rstate.setCurrentCardTypeForEditor(cardTypeInput.value);
+             // This state is no longer tracked globally, the value is read directly from the input when needed.
          });
     }
 

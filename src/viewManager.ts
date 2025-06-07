@@ -1,14 +1,9 @@
-
-
 // src/viewManager.ts
 import * as state from './state';
 import { appElement, scenarioListView, scenarioEditorView, gameplayView, adventureListView } from './domElements';
 import { renderScenarioList, renderAdventureList, renderSettingsModal, renderGameplay, renderScenarioEditor, renderConfirmationModal, renderTokenStatsModal } from './ui'; // Added renderTokenStatsModal
-import type { View, Scenario, NewScenarioScaffold, Adventure, ActionType, EditorContext, ScenarioEditorContext } from './types';
-import { loadAdventuresFromStorage, saveAdventuresToStorage } from './storage'; 
-import { generateId } from './utils';
-import { API_KEY } from './config';
-
+import type { View, NewScenarioScaffold, Adventure, EditorContext, ScenarioEditorContext } from './types';
+import { loadAdventuresFromAPI } from './storage'; // Updated import to load from API
 
 export function navigateTo(view: View, params?: any) {
   state.setCurrentView(view);
@@ -54,16 +49,11 @@ export function navigateTo(view: View, params?: any) {
     const adventureToPlay = params?.adventure as Adventure | undefined;
     if (adventureToPlay) {
         state.setActiveAdventure(adventureToPlay);
-        adventureToPlay.lastPlayedAt = Date.now(); 
-        saveAdventuresToStorage(); 
 
         if (!adventureToPlay.adventureHistory || adventureToPlay.adventureHistory.length === 0) {
-            adventureToPlay.adventureHistory = [{
-                id: generateId(),
-                role: 'model',
-                text: adventureToPlay.scenarioSnapshot.openingScene,
-                timestamp: Date.now()
-            }];
+            // The backend should now provide the opening scene as the first turn.
+            // If not, we can handle it here, but ideally the backend sends it.
+            console.log("Adventure history is empty. Expecting backend to have created the first turn.");
         }
         state.setIsPlayerActionInputVisible(false);
         state.setCurrentPlayerActionType('do'); 
@@ -74,7 +64,7 @@ export function navigateTo(view: View, params?: any) {
         return; 
     }
   } else if (view === 'adventureList') {
-    loadAdventuresFromStorage(); 
+    loadAdventuresFromAPI(); // Load adventures from API
   }
   
   if (view !== 'scenarioEditor') {
@@ -95,23 +85,7 @@ export function renderApp() {
   renderConfirmationModal();
   renderTokenStatsModal(); // Render token stats modal
 
-  if (!API_KEY) {
-    let mainContainer = appElement.querySelector('main');
-    if (!mainContainer) { 
-        mainContainer = appElement;
-    }
-    mainContainer.innerHTML = `<div style="padding: 20px; text-align: center; background-color: #ffdddd; color: #a00; border: 1px solid #a00; border-radius: 5px;">
-                <h2 id="error-heading">Configuration Error</h2>
-                <p>The Gemini API key is missing or invalid.</p>
-                <p>Please ensure the <code>API_KEY</code> environment variable is correctly set up for this application to function.</p>
-                <p>Refer to the Gemini API documentation for instructions on obtaining and setting up your API key.</p>
-            </div>`;
-    if (scenarioListView) scenarioListView.style.display = 'none';
-    if (scenarioEditorView) scenarioEditorView.style.display = 'none';
-    if (gameplayView) gameplayView.style.display = 'none';
-    if (adventureListView) adventureListView.style.display = 'none';
-    return;
-  }
+  // API Key check is removed from the frontend.
 
   const mainContentArea = appElement.querySelector('main') || appElement;
   if (scenarioListView && !scenarioListView.parentElement) mainContentArea.appendChild(scenarioListView);

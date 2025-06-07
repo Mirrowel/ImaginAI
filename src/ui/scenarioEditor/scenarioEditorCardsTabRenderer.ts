@@ -74,7 +74,6 @@ function renderCardsListForEditor(cards: Card[], editingCardId: string | null, d
 export function renderScenarioEditorCardsTab(
     scenarioDataSource: Scenario | NewScenarioScaffold | ScenarioSnapshot,
     showAddCardForm: boolean,
-    currentCardTypeForEditor: string,
     editingCardId: string | null,
     searchTerm: string,
     filterType: string,
@@ -103,7 +102,7 @@ export function renderScenarioEditorCardsTab(
         <h4>Add New Card</h4>
         <div class="form-group">
             <label for="card-type">Card Type (e.g., character, location):</label>
-            <input type="text" id="card-type" value="${escapeHTML(currentCardTypeForEditor)}">
+            <input type="text" id="card-type" value="character">
         </div>
         <div class="form-group">
             <label for="card-name">Card Name:</label>

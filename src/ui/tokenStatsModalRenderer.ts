@@ -3,7 +3,7 @@
 import * as state from '../state';
 import { escapeHTML } from '../utils';
 import { renderApp } from '../viewManager';
-import type { TokenUsageStats, GenerateContentParameters } from '../types'; 
+import type { TokenUsageStats } from '../types'; 
 import { TOKEN_STATS_MODAL_COLORS, DEFAULT_MAX_CONTEXT_TOKENS } from '../types';
 
 function handleExportPromptJson() {
