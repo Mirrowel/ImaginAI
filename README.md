@@ -1,4 +1,4 @@
-# ImaginAI [![License](https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png)](https://creativecommons.org/licenses/by-nc-sa/4.0/) [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/C0C0UZS4P)
+# ImaginAI [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/C0C0UZS4P)
 
 ![ImaginAI Logo](/Pics/1.png)
 
@@ -22,7 +22,7 @@ ImaginAI (aka Taleon.ai, imagin.ai) lets you craft rich story worlds with **Scen
 
 ## Table of Contents
 
-- [ImaginAI  ](#imaginai--)
+- [ImaginAI ](#imaginai-)
   - [Key Features](#key-features)
   - [Table of Contents](#table-of-contents)
   - [Features](#features)
