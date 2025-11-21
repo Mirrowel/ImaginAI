@@ -1,0 +1,23 @@
+Django>=5.2.2
+djangorestframework>=3.14,<4.0
+psycopg2-binary>=2.9.9
+django-redis>=5.4.0
+redis>=5.0
+google-generativeai>=0.8
+
+# Rotator Library - Provides intelligent API key rotation and retry logic
+# GitHub repository: https://github.com/Mirrowel/LLM-API-Key-Proxy
+#
+# Development mode (local lib/):
+#   - Uses local lib/rotator_library automatically via shim
+#   - No installation needed, just import: from backend.lib_imports.rotator_library import RotatingClient
+#
+# Production mode (recommended - install from GitHub):
+rotator_library @ git+https://github.com/Mirrowel/LLM-API-Key-Proxy.git@main#subdirectory=src/rotator_library
+#
+# Alternative production mode (editable install from GitHub for development):
+#   pip install -e "git+https://github.com/Mirrowel/LLM-API-Key-Proxy.git@main#egg=rotator_library&subdirectory=src/rotator_library"
+#
+# Alternative production mode (install from local copy):
+#   Uncomment line below if you want to install from local lib/ folder:
+#   rotator_library @ file:///lib/rotator_library

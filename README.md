@@ -2,10 +2,12 @@
 
 ![ImaginAI Logo](/Pics/1.png)
 
-> Web-based interactive fiction powered by AI  
-> “AI Dungeon at Home” Edition  
+> Full-stack interactive fiction platform powered by AI  
+> "AI Dungeon at Home" Edition  
 
-ImaginAI (aka Taleon.ai, imagin.ai) lets you craft rich story worlds with **Scenario Templates** and embark on unique **Adventures**. Powered by large language models, the narrative evolves based on your actions and dialogue.
+ImaginAI (aka Taleon.ai, imagin.ai) is a web-based interactive storytelling application that lets you craft rich story worlds with **Scenario Templates** and embark on unique **Adventures**. Powered by AI models with intelligent API key rotation, the narrative dynamically evolves based on your actions and dialogue.
+
+**Note:** This is a development prototype currently undergoing refactoring.
 
 ## Key Features
 
@@ -33,11 +35,24 @@ ImaginAI (aka Taleon.ai, imagin.ai) lets you craft rich story worlds with **Scen
     - [Data Persistence \& Portability](#data-persistence--portability)
     - [Global Settings](#global-settings)
   - [Technology Stack](#technology-stack)
+    - [Backend](#backend)
+    - [Frontend](#frontend)
+    - [Data Management](#data-management)
+    - [Development Tools](#development-tools)
+  - [Rotator Library Integration](#rotator-library-integration)
+    - [Key Features](#key-features-1)
+    - [Quick Start](#quick-start)
+    - [Setup](#setup)
   - [Project Structure](#project-structure)
   - [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
-    - [API Key Setup](#api-key-setup)
+    - [Installation](#installation)
+      - [1. Clone the Repository](#1-clone-the-repository)
+      - [2. Backend Setup](#2-backend-setup)
+      - [3. Frontend Setup](#3-frontend-setup)
+      - [4. Environment Configuration](#4-environment-configuration)
     - [Running the Application](#running-the-application)
+    - [API Documentation](#api-documentation)
   - [How to Use](#how-to-use)
     - [Creating a Scenario Template](#creating-a-scenario-template)
     - [Starting an Adventure](#starting-an-adventure)
@@ -45,6 +60,9 @@ ImaginAI (aka Taleon.ai, imagin.ai) lets you craft rich story worlds with **Scen
     - [Managing Cards](#managing-cards)
     - [Importing/Exporting Scenarios](#importingexporting-scenarios)
     - [Using Global Settings](#using-global-settings)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Support](#support)
 
 ## Features
 
@@ -130,9 +148,11 @@ Adventures are individual playthroughs based on a Scenario Template.
 
 ### Data Persistence & Portability
 
-- **Local Storage**: All Scenarios, Adventures, and Global Settings are saved in the browser's `localStorage`, enabling offline access and data persistence across sessions.
-- **JSON Export/Import for Scenarios**: Backup, share, and manage entire scenario templates via JSON files.
-- **JSON Export/Import for Cards (within Editor)**: Facilitates backup, sharing, and migration of card data between scenarios or with other compatible applications.
+- **PostgreSQL Database**: All scenarios, adventures, and game state are stored server-side in PostgreSQL for reliable persistence
+- **Redis Caching**: Frequently accessed data is cached in Redis for improved performance
+- **RESTful API**: Django REST Framework provides a robust API for all data operations
+- **JSON Export/Import for Scenarios**: Backup, share, and manage entire scenario templates via JSON files
+- **JSON Export/Import for Cards**: Facilitates backup, sharing, and migration of card data between scenarios or with other compatible applications
 
 ### Global Settings
 
@@ -146,111 +166,313 @@ Accessible via a "Settings" button in the main header.
 
 ## Technology Stack
 
-- **Frontend**: HTML5, CSS3, TypeScript (compiled to ES6 modules in the browser)
-- **AI**: Google Gemini API via `@google/genai` SDK
-- **Markdown Rendering**: `marked` library for parsing Markdown in AI responses.
-- **HTML Sanitization**: `DOMPurify` for sanitizing HTML output from Markdown.
-- **State Management**: Custom, lightweight state module (`src/state.ts`).
-- **Storage**: Browser `localStorage`.
-- **UI**: No major UI framework; direct DOM manipulation with a focus on vanilla JS/TS patterns and good component-like organization of render functions.
+### Backend
+- **Python 3.x** with **Django 5.2+** web framework
+- **Django REST Framework** for RESTful API
+- **PostgreSQL** database for persistent storage
+- **Redis** for caching and session management
+- **Google Generative AI SDK** (`google-generativeai`) for AI model interaction
+- **Rotator Library** ([LLM-API-Key-Proxy](https://github.com/Mirrowel/LLM-API-Key-Proxy)) for intelligent API key rotation and retry logic
+
+### Frontend
+- **Vite** - Modern build tool and development server
+- **TypeScript** - Type-safe JavaScript
+- **HTML5, CSS3** - Modern web standards
+- **Google Gemini SDK** (`@google/genai`) for client-side AI interactions
+- **marked** - Markdown parsing for AI-generated content
+- **DOMPurify** - HTML sanitization for security
+
+### Data Management
+- **PostgreSQL** - Primary database for scenarios, adventures, and user data
+- **Redis** - Caching layer for improved performance
+- **JSON Export/Import** - Data portability for scenarios and cards
+
+### Development Tools
+- **npm** - Frontend package management
+- **pip** - Python package management
+- **Git** - Version control
+
+
+## Rotator Library Integration
+
+ImaginAI integrates the **rotator_library** from the [LLM-API-Key-Proxy](https://github.com/Mirrowel/LLM-API-Key-Proxy) project for intelligent API key rotation and advanced retry logic when calling AI models.
+
+### Key Features
+
+- **Smart API Key Rotation**: Automatically cycles through multiple API keys with intelligent failover
+- **Dual-Mode Support**: Works in development (local `lib/`) or production (pip-installed package)
+- **Multi-Provider Support**: Compatible with OpenAI, Anthropic, Google Gemini, and more
+- **OAuth Support**: Built-in OAuth flows for providers like Gemini CLI, Qwen, and iFlow
+- **Automatic Retry Logic**: Exponential backoff with rate limit detection
+- **Usage Tracking**: Detailed per-key statistics and cost monitoring
+
+### Quick Start
+
+The library is automatically available via the import shim in `backend/lib_imports/`:
+
+```python
+from backend.lib_imports.rotator_library import RotatingClient
+
+async with RotatingClient(api_keys={"gemini": [api_key]}) as client:
+    response = await client.acompletion(
+        model="gemini/gemini-1.5-flash",
+        messages=[{"role": "user", "content": "Hello!"}]
+    )
+```
+
+### Setup
+
+**Production Mode** (recommended):
+```bash
+pip install -r requirements.txt
+# Installs from GitHub automatically
+```
+
+**Development Mode** (local lib/ folder):
+```bash
+cd lib
+git clone https://github.com/Mirrowel/LLM-API-Key-Proxy.git
+cp -r LLM-API-Key-Proxy/src/rotator_library .
+cd ..
+```
+
+For comprehensive setup instructions, see [`docs/ROTATOR_LIBRARY_SETUP.md`](docs/ROTATOR_LIBRARY_SETUP.md).
 
 ## Project Structure
 
-The `index.html` file may contain hidden file input elements for import functionalities.
-
 ```
 .
-├── .env.example              # Example environment variables file
-├── index.html                # Main HTML file, application host
-├── index.tsx                 # Main TypeScript entry point
-├── metadata.json             # Project metadata for the hosting environment
-├── README.md                 # This file
-└── src/
-    ├── config.ts             # API key and Gemini AI client initialization
-    ├── domElements.ts        # Centralized DOM element selectors
-    ├── geminiService.ts      # Logic for interacting with the Gemini API
-    ├── state.ts              # Application state management
-    ├── storage.ts            # localStorage interaction logic
-    ├── types.ts              # TypeScript interfaces and type definitions
-    ├── utils.ts              # Utility functions (ID generation, sanitization, etc.)
-    ├── viewManager.ts        # Controls view rendering and navigation logic
-    │
-    ├── eventHandlers/          # Directory for event handling modules
-    │   ├── index.ts            # Barrel file for event handlers
-    │   ├── adventureEventHandlers.ts
-    │   ├── cardEventHandlers.ts
-    │   ├── gameplayEventHandlers.ts
-    │   ├── globalSettingsEventHandlers.ts
-    │   ├── scenarioEventHandlers.ts
-    │   └── unifiedSaveHandler.ts 
-    │   └── modalEventHandlers.ts
-    │
-    └── ui/                     # UI rendering modules
-        ├── index.ts            # Barrel file for all UI modules
-        ├── adventureListRenderer.ts
-        ├── scenarioListRenderer.ts
-        ├── settingsRenderer.ts
-        ├── confirmationModalRenderer.ts
-        │
-        ├── gameplay/           # Directory for gameplay view components
-        │   ├── index.ts        # Barrel file for gameplay UI
-        │   ├── gameplayMainRenderer.ts
-        │   ├── gameplayHeaderRenderer.ts
-        │   ├── gameplayHistoryRenderer.ts
-        │   ├── gameplayActionAreaRenderer.ts
-        │   ├── gameplaySidebarRenderer.ts
-        │   ├── gameplaySidebarPlotTabRenderer.ts
-        │   ├── gameplaySidebarCardsTabRenderer.ts
-        │   └── gameplaySidebarInfoTabRenderer.ts
-        │
-        └── scenarioEditor/     # Directory for scenario editor components
-            ├── index.ts        # Barrel file for scenario editor UI
-            ├── scenarioEditorMainRenderer.ts
-            ├── scenarioEditorPlotTabRenderer.ts
-            ├── scenarioEditorCardsTabRenderer.ts
-            └── scenarioEditorDetailsTabRenderer.ts
+├── backend/                      # Django backend
+│   ├── imaginai_backend/         # Django project settings
+│   │   ├── __init__.py
+│   │   ├── settings.py          # Main Django settings
+│   │   ├── urls.py              # URL routing
+│   │   ├── wsgi.py              # WSGI config
+│   │   └── asgi.py              # ASGI config
+│   ├── api/                      # Django REST API app
+│   │   ├── models.py            # Database models (Scenario, Adventure, etc.)
+│   │   ├── views.py             # API view logic
+│   │   ├── serializers.py       # DRF serializers
+│   │   ├── urls.py              # API URL routing
+│   │   ├── default_scenario.json # Default scenario template
+│   │   └── migrations/          # Database migrations
+│   ├── lib_imports/              # Import shim for rotator_library
+│   │   └── __init__.py          # Dual-mode import logic
+│   ├── examples/                 # Example usage scripts
+│   ├── tests/                    # Backend tests
+│   └── manage.py                 # Django management script
+├── src/                          # Frontend TypeScript source
+│   ├── config.ts                 # API key and client initialization
+│   ├── domElements.ts            # DOM element selectors
+│   ├── geminiService.ts          # Gemini API interaction logic
+│   ├── state.ts                  # Application state management
+│   ├── storage.ts               # localStorage utilities (legacy/client-side)
+│   ├── types.ts                  # TypeScript type definitions
+│   ├── utils.ts                  # Utility functions
+│   ├── viewManager.ts            # View rendering and navigation
+│   ├── eventHandlers/            # Event handling modules
+│   │   ├── index.ts
+│   │   ├── adventureEventHandlers.ts
+│   │   ├── cardEventHandlers.ts
+│   │   ├── gameplayEventHandlers.ts
+│   │   ├── globalSettingsEventHandlers.ts
+│   │   ├── scenarioEventHandlers.ts
+│   │   ├── unifiedSaveHandler.ts
+│   │   └── modalEventHandlers.ts
+│   └── ui/                       # UI rendering modules
+│       ├── index.ts
+│       ├── adventureListRenderer.ts
+│       ├── scenarioListRenderer.ts
+│       ├── settingsRenderer.ts
+│       ├── confirmationModalRenderer.ts
+│       ├── gameplay/             # Gameplay view components
+│       │   ├── index.ts
+│       │   ├── gameplayMainRenderer.ts
+│       │   ├── gameplayHeaderRenderer.ts
+│       │   ├── gameplayHistoryRenderer.ts
+│       │   ├── gameplayActionAreaRenderer.ts
+│       │   ├── gameplaySidebarRenderer.ts
+│       │   ├── gameplaySidebarPlotTabRenderer.ts
+│       │   ├── gameplaySidebarCardsTabRenderer.ts
+│       │   └── gameplaySidebarInfoTabRenderer.ts
+│       └── scenarioEditor/       # Scenario editor components
+│           ├── index.ts
+│           ├── scenarioEditorMainRenderer.ts
+│           ├── scenarioEditorPlotTabRenderer.ts
+│           ├── scenarioEditorCardsTabRenderer.ts
+│           └── scenarioEditorDetailsTabRenderer.ts
+├── docs/                         # Documentation
+│   └── ROTATOR_LIBRARY_SETUP.md # Rotator library setup guide
+├── lib/                          # Local libraries (gitignored)
+│   └── rotator_library/         # Local copy (optional dev mode)
+├── logs/                         # Application logs
+├── oauth_creds/                  # OAuth credentials (gitignored)
+├── node_modules/                 # Frontend dependencies (gitignored)
+├── .env                          # Environment variables (gitignored)
+├── .env.example                  # Example environment configuration
+├── .gitignore                    # Git ignore rules
+├── index.html                    # Frontend entry HTML
+├── index.tsx                     # Frontend TypeScript entry point
+├── vite.config.ts                # Vite configuration
+├── tsconfig.json                 # TypeScript configuration
+├── package.json                  # Frontend dependencies
+├── requirements.txt              # Backend Python dependencies
+├── API_DOCUMENTATION.md          # API endpoint documentation
+└── README.md                     # This file
 ```
+
 
 ## Getting Started
 
 ### Prerequisites
 
-- A modern web browser (e.g., Chrome, Firefox, Edge, Safari).
-- No Node.js or build step is strictly required to run the application as-is, as it uses ES modules directly in the browser.
+Before you begin, ensure you have the following installed:
 
-### API Key Setup
+- **Python 3.8+** - [Download Python](https://www.python.org/downloads/)
+- **Node.js 16+** and **npm** - [Download Node.js](https://nodejs.org/)
+- **PostgreSQL 12+** - [Download PostgreSQL](https://www.postgresql.org/download/)
+- **Redis 6+** - [Download Redis](https://redis.io/download/)
+- **Git** - [Download Git](https://git-scm.com/downloads)
 
-This application requires a Google Gemini API key to function. The application is configured to use Vite's built-in environment variable handling to load your API key from a `.env` file.
+### Installation
 
-1. **Obtain an API Key**:
-    Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+#### 1. Clone the Repository
 
-2. **Setup your `.env` file**:
-    - In the root directory of the project, you'll find a `.env.example` file as a template.
-    - Copy `.env.example` to `.env`:
-      ```bash
-      cp .env.example .env
-      ```
-    - Open the `.env` file and add your API key:
-      ```
-      VITE_GEMINI_API_KEY=your_actual_api_key_here
-      ```
+```bash
+git clone https://github.com/yourusername/ImaginAI.git
+cd ImaginAI
+```
 
-3. **Security Note**:
-    - Your `.env` file is already included in `.gitignore` to prevent accidentally committing your API key.
-    - **Never** commit your actual API key to version control.
-    - The `.env.example` file is safe to commit as it contains no real secrets.
+#### 2. Backend Setup
 
-4. **How it works**:
-    - Vite automatically loads environment variables from your `.env` file during development and build.
-    - The API key is made available to your application as `import.meta.env.VITE_GEMINI_API_KEY`.
-    - If you need to run the application without Vite (directly opening `index.html`), you'll need to use a development server that handles environment variables.
+**Create a Python virtual environment:**
+
+```bash
+# Windows
+python -m venv venv
+venv\Scripts\activate
+
+# macOS/Linux
+python3 -m venv venv
+source venv/bin/activate
+```
+
+**Install Python dependencies:**
+
+```bash
+pip install -r requirements.txt
+```
+
+**Set up PostgreSQL database:**
+
+```bash
+# Connect to PostgreSQL
+psql -U postgres
+
+# Create database and user
+CREATE DATABASE imaginai_db;
+CREATE USER imaginai_user WITH PASSWORD '762533';
+GRANT ALL PRIVILEGES ON DATABASE imaginai_db TO imaginai_user;
+\q
+```
+
+**Run database migrations:**
+
+```bash
+cd backend
+python manage.py migrate
+cd ..
+```
+
+**Set up Rotator Library (optional for development):**
+
+For detailed rotator library setup, see [`docs/ROTATOR_LIBRARY_SETUP.md`](docs/ROTATOR_LIBRARY_SETUP.md). 
+
+Quick setup - install from GitHub:
+```bash
+pip install -r requirements.txt
+```
+
+Or use local development mode:
+```bash
+cd lib
+git clone https://github.com/Mirrowel/LLM-API-Key-Proxy.git
+cp -r LLM-API-Key-Proxy/src/rotator_library .
+cd ..
+```
+
+#### 3. Frontend Setup
+
+**Install npm dependencies:**
+
+```bash
+npm install
+```
+
+#### 4. Environment Configuration
+
+Create a `.env` file in the project root:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and add your Gemini API key:
+
+```env
+VITE_GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+
+> **Security Note**: Never commit your `.env` file to version control. It's already included in `.gitignore`.
 
 ### Running the Application
 
-1. Clone the repository (if applicable) or download the files.
-2. Ensure you have set up your API key as described in the "API Key Setup" section.
-3. Open the `index.html` file directly in your web browser. (See notes above about API key availability if running this way).
+You need to run both the backend and frontend servers:
+
+**1. Start Redis (in a separate terminal):**
+
+```bash
+# Windows (if installed as service, it auto-starts)
+redis-server
+
+# macOS (via Homebrew)
+brew services start redis
+
+# Linux
+sudo systemctl start redis
+# or
+redis-server
+```
+
+**2. Start Django Backend (in a separate terminal):**
+
+```bash
+# Activate virtual environment if not already active
+cd backend
+python manage.py runserver
+```
+
+The backend API will be available at `http://127.0.0.1:8000`
+
+**3. Start Vite Frontend Dev Server:**
+
+```bash
+# In the project root directory
+npm run dev
+```
+
+The frontend will be available at `http://localhost:3000`
+
+**4. Open your browser:**
+
+Navigate to `http://localhost:3000` to start using ImaginAI!
+
+### API Documentation
+
+For detailed information about available API endpoints, see [API_DOCUMENTATION.md](API_DOCUMENTATION.md).
+
 
 ## How to Use
 
@@ -315,3 +537,22 @@ This application requires a Google Gemini API key to function. The application i
     - Toggle "Allow AI Thinking".
     - Set the Global Max Output Tokens.
 3. Click "Save Settings" to apply and store your preferences, or "Cancel" to discard changes for your ImaginAI experience.
+
+## Contributing
+
+This project is currently in active development and undergoing refactoring. Contributions, issues, and feature requests are welcome!
+
+## License
+
+See [LICENSE.MD](LICENSE.MD) for details.
+
+## Support
+
+If you find this project useful, consider supporting development:
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/C0C0UZS4P)
+
+---
+
+**ImaginAI** - AI-Powered Interactive Fiction at Home
+
