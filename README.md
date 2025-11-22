@@ -5,39 +5,28 @@
 > Full-stack interactive fiction platform powered by AI  
 > "AI Dungeon at Home" Edition  
 
-ImaginAI (aka Taleon.ai, imagin.ai) is a web-based interactive storytelling application that lets you craft rich story worlds with **Scenario Templates** and embark on unique **Adventures**. Powered by AI models with intelligent API key rotation, the narrative dynamically evolves based on your actions and dialogue.
+**Status**: Active prototype — core backend features working, frontend UI refactoring in progress
 
-**Note:** This is a development prototype currently undergoing refactoring.
+ImaginAI (aka Taleon.ai, imagin.ai) is a web-based interactive storytelling application that lets you craft rich story worlds with **Scenario Templates** and embark on unique **Adventures**. Powered by advanced AI integration with intelligent trigger word detection, real-time streaming responses, and async architecture, the narrative dynamically evolves based on your actions and dialogue.
+
+**Built with modern tech**: Django REST backend with PostgreSQL/Redis, React 19 frontend, and full AI Dungeon compatibility for seamless scenario migration.
 
 ## Key Features
 
 - **Scenario Templates**  
     Define your world, characters, tags and opening scenes—then save, edit, import/export or duplicate them.  
-- **Adventures**  
-    Launch playthroughs from a template snapshot. Enjoy persistent history, editable turns, retry/continue controls and dynamic in-game settings.  
-- **AI-Driven Storytelling**  
-    Experience branching narratives as the AI adapts to every choice.  
-- **Data Portability**  
-    Backup and share templates or cards via JSON.  
-- **Local Persistence**  
-    All scenarios, adventures and global settings are stored in the browser for offline access.  
+- **Adventures with Snapshots**  
+    Launch playthroughs from frozen scenario states. Enjoy persistent history, editable turns, retry/continue controls and dynamic in-game settings.  
+- **Intelligent AI Integration**  
+    Advanced trigger word detection, real-time SSE streaming, and async architecture for superior performance.  
+- **AI Dungeon Compatible**  
+    Import/export scenarios and cards in AI Dungeon format for seamless content migration.  
+- **Server-Side Persistence**  
+    PostgreSQL database with Redis caching for reliable, scalable data storage.  
 
 ## Table of Contents
 
 - [ImaginAI ](#imaginai-)
-  - [Key Features](#key-features)
-  - [Table of Contents](#table-of-contents)
-  - [Features](#features)
-    - [Scenario Creation \& Management](#scenario-creation--management)
-    - [Adventure Gameplay](#adventure-gameplay)
-    - [Gameplay Interface](#gameplay-interface)
-    - [AI Interaction \& Customization](#ai-interaction--customization)
-    - [Data Persistence \& Portability](#data-persistence--portability)
-    - [Global Settings](#global-settings)
-  - [Technology Stack](#technology-stack)
-    - [Backend](#backend)
-    - [Frontend](#frontend)
-    - [Data Management](#data-management)
     - [Development Tools](#development-tools)
   - [Rotator Library Integration](#rotator-library-integration)
     - [Key Features](#key-features-1)
@@ -97,27 +86,40 @@ Scenario Templates are the blueprints for your stories.
 
 Adventures are individual playthroughs based on a Scenario Template.
 
-- **Snapshot System**: When an adventure starts, it takes a "snapshot" of the source scenario. Changes to the original template later will not affect ongoing adventures.
-- **Unique Naming**: Give each adventure its own distinct name.
-- **Persistent History**: All player actions and AI responses are saved, creating a complete story log.
+- **Scenario Snapshot System**: 
+  - When an adventure starts, a frozen "snapshot" of the scenario is created
+  - Changes to the original template later will not affect ongoing adventures
+  - Each adventure maintains complete independence from its source
+  - Snapshots include all scenario data: instructions, plot, cards, and settings
+- **Real-Time Streaming Responses**: 
+  - AI responses stream in real-time via Server-Sent Events (SSE)
+  - See narrative generation as it happens with low latency
+  - Smooth, progressive display for immersive storytelling
+- **Intelligent Card Injection**: 
+  - Story cards are automatically injected based on trigger word detection
+  - Recent conversation context scanned for relevant keywords
+  - Dynamic, context-aware world-building without manual card selection
+- **Unique Naming**: Give each adventure its own distinct name
+- **Persistent History**: All player actions and AI responses are saved server-side in PostgreSQL
 - **Turn Management**:
-  - **Edit Turns**: Modify the text of any previous player or AI turn. The subsequent story will adapt based on these changes upon the next AI interaction.
-  - **Delete Turns**: Remove any turn from the history. The story will adjust accordingly. If all turns are deleted, the adventure can be restarted from its opening scene.
+  - **Edit Turns**: Modify any previous player or AI turn. The story adapts on next AI interaction
+  - **Delete Turns**: Remove turns from history. Story adjusts accordingly
+  - **Regenerate Opening**: If all turns deleted, adventure can restart from opening scene
 - **Player Actions**:
-  - **Do**: Describe an action your character takes.
-  - **Say**: Input dialogue for your character.
-  - **Story**: Narrate a piece of the story from an out-of-character perspective, guiding the AI.
+  - **Do**: Describe an action your character takes
+  - **Say**: Input dialogue for your character
+  - **Story**: Narrate from an out-of-character perspective, guiding the AI
 - **AI Controls**:
-  - **Retry**: If unsatisfied with the AI's last response, you can ask it to regenerate.
-  - **Continue**: Prompt the AI to continue the story without specific player input.
+  - **Retry**: Regenerate the last AI response if unsatisfied
+  - **Continue**: Prompt AI to continue story without specific player input
 - **Dynamic Adventure Settings**:
-  - During gameplay, modify the adventure's snapshot of AI instructions, plot essentials, author's notes, and cards via the sidebar. These changes affect only the current adventure.
+  - Modify adventure snapshot: AI instructions, plot essentials, author's notes
+  - Add, edit, delete, or duplicate cards within the snapshot
+  - Changes affect only the current adventure, not the source template
 - **Adventure Management**:
-  - View a list of all your adventures, sorted by the last played date.
-  - Continue any adventure.
-  - Edit the high-level settings of an adventure (name, and its scenario snapshot details via the editor).
-  - Duplicate existing adventures to explore different story branches.
-  - Delete adventures.
+  - List view sorted by last played date
+  - Continue, edit, duplicate, or delete adventures
+  - Full CRUD operations on adventure snapshots
 
 ### Gameplay Interface
 
@@ -131,28 +133,53 @@ Adventures are individual playthroughs based on a Scenario Template.
 
 ### AI Interaction & Customization
 
-- **Powered by Gemini API**: Utilizes Google's `@google/genai` SDK to interact with powerful language models.
-- **Flexible Model Selection**: Choose from a range of Gemini and Gemma models through the Global Settings.
+- **Advanced AI Service Architecture**: Two-layer design with generic wrappers and project-specific helpers for maximum flexibility
+- **Intelligent Trigger Word Detection**: 
+  - Story cards are dynamically injected based on conversation context
+  - Case-insensitive word boundary matching for natural trigger detection
+  - Scans recent history and user input to provide relevant context
+- **Real-Time Streaming Responses**: 
+  - Server-Sent Events (SSE) for low-latency, real-time narrative generation
+  - Stream endpoint: `POST /api/adventures/{id}/stream/`
+  - Progressive response display as the AI generates content
+- **Async Architecture**: 
+  - Native async/await implementation throughout the backend
+  - Non-blocking AI operations for superior performance
+  - Concurrent request handling for scalability
+- **Flexible Model Selection**: Choose from a range of Gemini and Gemma models through the Global Settings
 - **Sophisticated Prompt Engineering**:
-  - A **Base System Instruction** is always prepended to ensure consistent AI behavior and seamless turn continuation.
-  - Scenario-specific instructions further guide the AI.
-  - Formatted "Cards" are included in the context sent to the AI.
-  - Chat history is appropriately managed for coherent storytelling.
+  - System instructions with scenario context, plot essentials, and author's notes
+  - Triggered cards automatically formatted and injected into prompts
+  - Token-aware context window management (planned enhancement)
 - **Response Handling**:
-  - **Truncate**: If an AI response exceeds the token limit, it's intelligently cut off at the nearest sentence end.
-  - **Summarize**: (Optional) If a response is too long, the AI can be prompted to summarize it, aiming for the token limit.
+  - **Truncate**: Intelligent cutoff at nearest sentence boundary when token limit reached
 - **"Allow AI Thinking" Option**:
-  - For specific models (e.g., `gemini-2.5-flash-preview-04-17`), this enables/disables a dedicated thinking budget (`thinkingConfig: { thinkingBudget: 0 }` when off).
-  - For other models, this setting primarily influences output token limits. Enabling it may lead to higher quality but potentially slower responses. Disabling it prioritizes lower latency.
-- **Configurable Token Limits**: Set a global maximum output token limit for AI responses.
+  - For specific models (e.g., `gemini-2.5-flash-preview-04-17`), enables/disables dedicated thinking budget
+  - Influences output quality vs latency tradeoff
+- **Configurable Token Limits**: Global maximum output token limit (50-800 tokens)
+- **Detailed Token Usage Tracking**: 
+  - Per-component breakdown (system, plot, history, cards, user message)
+  - API-reported vs precise token accounting
+  - Model usage statistics for optimization
+
+### AI Dungeon Compatibility
+
+- **Seamless Card Migration**: Import and export story cards in AI Dungeon's JSON format
+- **Format Translation**: Automatic conversion between ImaginAI and AI Dungeon structures
+- **Scenario Portability**: Bring your existing AI Dungeon scenarios to ImaginAI
+- **API Endpoints**:
+  - Export cards: `GET /api/scenarios/{id}/export-cards-aid/`
+  - Import cards: `POST /api/scenarios/{id}/import-cards-aid/`
 
 ### Data Persistence & Portability
 
-- **PostgreSQL Database**: All scenarios, adventures, and game state are stored server-side in PostgreSQL for reliable persistence
-- **Redis Caching**: Frequently accessed data is cached in Redis for improved performance
-- **RESTful API**: Django REST Framework provides a robust API for all data operations
-- **JSON Export/Import for Scenarios**: Backup, share, and manage entire scenario templates via JSON files
-- **JSON Export/Import for Cards**: Facilitates backup, sharing, and migration of card data between scenarios or with other compatible applications
+- **PostgreSQL Database**: All scenarios, adventures, and game state stored server-side for reliable, scalable persistence
+- **Redis Caching**: Frequently accessed data cached for improved read performance
+- **RESTful API**: Django REST Framework provides robust CRUD operations for all resources
+- **Scenario Export/Import**: Backup and share complete scenario templates as JSON files
+- **AI Dungeon Card Format**: Import/export cards in AI Dungeon format for seamless migration
+- **Adventure Duplication**: Clone entire adventures with full history for branching storylines
+- **Token Usage Tracking**: Detailed statistics on token consumption per turn with component breakdown
 
 ### Global Settings
 
@@ -167,20 +194,24 @@ Accessible via a "Settings" button in the main header.
 ## Technology Stack
 
 ### Backend
-- **Python 3.x** with **Django 5.2+** web framework
+- **Python 3.8+** with **Django 5.2+** web framework
 - **Django REST Framework** for RESTful API
 - **PostgreSQL** database for persistent storage
 - **Redis** for caching and session management
+- **Async Django Views** - Native async/await for all AI operations (no blocking)
+- **Server-Sent Events (SSE)** - Real-time streaming AI responses
 - **Google Generative AI SDK** (`google-generativeai`) for AI model interaction
 - **Rotator Library** ([LLM-API-Key-Proxy](https://github.com/Mirrowel/LLM-API-Key-Proxy)) for intelligent API key rotation and retry logic
 
 ### Frontend
-- **Vite** - Modern build tool and development server
-- **TypeScript** - Type-safe JavaScript
-- **HTML5, CSS3** - Modern web standards
-- **Google Gemini SDK** (`@google/genai`) for client-side AI interactions
-- **marked** - Markdown parsing for AI-generated content
-- **DOMPurify** - HTML sanitization for security
+- **React 19** with **TypeScript** - Modern component-based UI
+- **Vite** - Fast build tooling and dev server
+- **Tailwind CSS** + **shadcn/ui** - Modern component library
+- **Zustand** - Lightweight state management
+- **React Router** - Client-side routing
+- **React Markdown** - AI response rendering with GitHub Flavored Markdown
+
+> **Note**: Frontend is currently undergoing refactoring to modernize the UI/UX experience.
 
 ### Data Management
 - **PostgreSQL** - Primary database for scenarios, adventures, and user data
@@ -242,79 +273,56 @@ For comprehensive setup instructions, see [`docs/ROTATOR_LIBRARY_SETUP.md`](docs
 
 ```
 .
-├── backend/                      # Django backend
-│   ├── imaginai_backend/         # Django project settings
-│   │   ├── __init__.py
-│   │   ├── settings.py          # Main Django settings
-│   │   ├── urls.py              # URL routing
-│   │   ├── wsgi.py              # WSGI config
-│   │   └── asgi.py              # ASGI config
-│   ├── api/                      # Django REST API app
-│   │   ├── models.py            # Database models (Scenario, Adventure, etc.)
-│   │   ├── views.py             # API view logic
-│   │   ├── serializers.py       # DRF serializers
-│   │   ├── urls.py              # API URL routing
-│   │   ├── default_scenario.json # Default scenario template
+├── backend/                      # Django REST backend
+│   ├── imaginai_backend/         # Django project configuration
+│   │   ├── settings.py          # Django settings (PostgreSQL, Redis, CORS)
+│   │   ├── urls.py              # Main URL routing
+│   │   ├── wsgi.py              # WSGI server config
+│   │   └── asgi.py              # ASGI config for async views
+│   ├── api/                      # Main Django app
+│   │   ├── models/              # Domain models
+│   │   │   ├── scenario.py      # Scenario & Card models
+│   │   │   ├── adventure.py     # Adventure & AdventureTurn models
+│   │   │   └── settings.py      # GlobalSettings & TokenUsageStats
+│   │   ├── serializers/         # DRF serializers for API responses
+│   │   ├── views/               # API endpoints
+│   │   │   ├── adventure_views.py   # Adventure CRUD + AI generation
+│   │   │   ├── scenario_views.py    # Scenario CRUD + AID import/export
+│   │   │   └── settings_views.py    # Global settings management
+│   │   ├── services/            # Business logic layer
+│   │   │   └── ai_service.py    # AI integration (trigger words, streaming)
+│   │   ├── utils/               # Utilities (AID translator, helpers)
+│   │   ├── dependencies.py      # Dependency injection setup
 │   │   └── migrations/          # Database migrations
 │   ├── lib_imports/              # Import shim for rotator_library
-│   │   └── __init__.py          # Dual-mode import logic
-│   ├── examples/                 # Example usage scripts
-│   ├── tests/                    # Backend tests
-│   └── manage.py                 # Django management script
-├── src/                          # Frontend TypeScript source
-│   ├── config.ts                 # API key and client initialization
-│   ├── domElements.ts            # DOM element selectors
-│   ├── geminiService.ts          # Gemini API interaction logic
-│   ├── state.ts                  # Application state management
-│   ├── storage.ts               # localStorage utilities (legacy/client-side)
-│   ├── types.ts                  # TypeScript type definitions
-│   ├── utils.ts                  # Utility functions
-│   ├── viewManager.ts            # View rendering and navigation
-│   ├── eventHandlers/            # Event handling modules
-│   │   ├── index.ts
-│   │   ├── adventureEventHandlers.ts
-│   │   ├── cardEventHandlers.ts
-│   │   ├── gameplayEventHandlers.ts
-│   │   ├── globalSettingsEventHandlers.ts
-│   │   ├── scenarioEventHandlers.ts
-│   │   ├── unifiedSaveHandler.ts
-│   │   └── modalEventHandlers.ts
-│   └── ui/                       # UI rendering modules
-│       ├── index.ts
-│       ├── adventureListRenderer.ts
-│       ├── scenarioListRenderer.ts
-│       ├── settingsRenderer.ts
-│       ├── confirmationModalRenderer.ts
-│       ├── gameplay/             # Gameplay view components
-│       │   ├── index.ts
-│       │   ├── gameplayMainRenderer.ts
-│       │   ├── gameplayHeaderRenderer.ts
-│       │   ├── gameplayHistoryRenderer.ts
-│       │   ├── gameplayActionAreaRenderer.ts
-│       │   ├── gameplaySidebarRenderer.ts
-│       │   ├── gameplaySidebarPlotTabRenderer.ts
-│       │   ├── gameplaySidebarCardsTabRenderer.ts
-│       │   └── gameplaySidebarInfoTabRenderer.ts
-│       └── scenarioEditor/       # Scenario editor components
-│           ├── index.ts
-│           ├── scenarioEditorMainRenderer.ts
-│           ├── scenarioEditorPlotTabRenderer.ts
-│           ├── scenarioEditorCardsTabRenderer.ts
-│           └── scenarioEditorDetailsTabRenderer.ts
+│   └── manage.py                 # Django CLI
+├── src/                          # React frontend
+│   ├── pages/                    # Route pages
+│   │   ├── Home.tsx             # Scenario list & adventure dashboard
+│   │   ├── Editor.tsx           # Scenario creation/editing
+│   │   └── Gameplay.tsx         # Interactive story gameplay
+│   ├── components/               # React components
+│   │   ├── ui/                  # shadcn/ui components
+│   │   ├── editor/              # Scenario editor components
+│   │   ├── gameplay/            # Gameplay UI components
+│   │   └── common/              # Shared components (modals, etc.)
+│   ├── stores/                   # Zustand state management
+│   │   ├── useDataStore.ts      # Scenarios & adventures state
+│   │   ├── useGameplayStore.ts  # Active gameplay state
+│   │   ├── useSettingsStore.ts  # Global settings
+│   │   └── useUIStore.ts        # UI state (modals, sidebar, etc.)
+│   ├── hooks/                    # Custom React hooks
+│   ├── lib/                      # Utilities and helpers
+│   ├── App.tsx                   # App shell with routing
+│   └── main.tsx                  # React entry point
 ├── docs/                         # Documentation
 │   └── ROTATOR_LIBRARY_SETUP.md # Rotator library setup guide
 ├── lib/                          # Local libraries (gitignored)
 │   └── rotator_library/         # Local copy (optional dev mode)
-├── logs/                         # Application logs
-├── oauth_creds/                  # OAuth credentials (gitignored)
-├── node_modules/                 # Frontend dependencies (gitignored)
-├── .env                          # Environment variables (gitignored)
-├── .env.example                  # Example environment configuration
-├── .gitignore                    # Git ignore rules
-├── index.html                    # Frontend entry HTML
-├── index.tsx                     # Frontend TypeScript entry point
+├── .env.backend                  # Backend environment config
 ├── vite.config.ts                # Vite configuration
-├── tsconfig.json                 # TypeScript configuration
+├── tsconfig.json                 # TypeScript config
+├── tailwind.config.js            # Tailwind CSS config
 ├── package.json                  # Frontend dependencies
 ├── requirements.txt              # Backend Python dependencies
 ├── API_DOCUMENTATION.md          # API endpoint documentation
@@ -472,6 +480,13 @@ Navigate to `http://localhost:3000` to start using ImaginAI!
 ### API Documentation
 
 For detailed information about available API endpoints, see [API_DOCUMENTATION.md](API_DOCUMENTATION.md).
+
+**Key API Features:**
+- RESTful endpoints for all resources (scenarios, adventures, cards, settings)
+- Real-time SSE streaming: `POST /api/adventures/{id}/stream/`
+- AI Dungeon format support: `GET/POST /api/scenarios/{id}/export-cards-aid/` and `/import-cards-aid/`
+- Async Django views for superior performance
+- Comprehensive error handling and validation
 
 
 ## How to Use
