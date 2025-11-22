@@ -50,6 +50,40 @@ This document provides an outline of the available API endpoints and their uses.
     *   **Use:** Retries the last model turn.
     *   **Returns:** A JSON object containing the new turn.
 
+## AI Generation (Streaming)
+
+*   **`POST /api/adventures/{id}/stream/`**
+    *   **Use:** Generates AI response with real-time Server-Sent Events (SSE) streaming.
+    *   **Request Body:**
+        ```json
+        {
+            "text": "user input text or null for continue",
+            "selected_model": "gemini/gemini-1.5-flash",
+            "max_tokens": 200,
+            "action_type": "do" | "say" | "story"
+        }
+        ```
+    *   **Response:** `text/event-stream` with JSON chunks
+        ```
+        data: {"chunk": "AI response text..."}
+        
+        data: {"chunk": "more text..."}
+        
+        data: [DONE]
+        ```
+    *   **Error Format:**
+        ```
+        data: {"error": "error message"}
+        ```
+    *   **Headers:**
+        - `Accept: text/event-stream`
+        - `Content-Type: application/json`
+    *   **Notes:** 
+        - Creates user turn automatically if `text` is provided
+        - Saves AI turn after stream completes
+        - Supports cancellation via AbortController
+        - Updates adventure `lastPlayedAt` timestamp
+
 ## Global Settings
 
 *   **`GET /api/settings/1/`**

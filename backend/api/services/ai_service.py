@@ -186,7 +186,14 @@ class AIService:
         system_content = self._format_system_instruction(scenario_snapshot)
         system_msg = {"role": "system", "content": system_content}
         
-        # Get recent history (TODO: token-aware selection)
+        # TODO: Implement token-aware context window management
+        # Current limitation: Hardcoded 20-turn limit without token counting
+        # Future improvement needed:
+        #   1. Count tokens for system instruction + cards first
+        #   2. Calculate remaining tokens from model's context window
+        #   3. Select history turns bottom-up (newest first) until token budget exhausted
+        #   4. This ensures we always fit within context while maximizing relevant history
+        # See code_review.md "Limited Context Window Management" section for implementation
         history_turns = adventure.adventureHistory.order_by('timestamp')[:20]
         history_msgs = [
             {"role": turn.role, "content": turn.text}

@@ -3,7 +3,7 @@ import { streamSSE } from '@/lib/sse'
 import { useGameplayStore } from '@/stores/useGameplayStore'
 
 interface UseLLMStreamReturn {
-  startStream: (url: string) => Promise<void>
+  startStream: (url: string, body?: Record<string, any>) => Promise<void>
   stopStream: () => void
   isStreaming: boolean
   error: Error | null
@@ -16,7 +16,7 @@ export function useLLMStream(): UseLLMStreamReturn {
   
   const { setStreamingContent, appendStreamingContent, setIsGenerating } = useGameplayStore()
 
-  const startStream = useCallback(async (url: string) => {
+  const startStream = useCallback(async (url: string, body?: Record<string, any>) => {
     // Reset state
     setIsStreaming(true)
     setIsGenerating(true)
@@ -32,6 +32,7 @@ export function useLLMStream(): UseLLMStreamReturn {
     abortControllerRef.current = abortController
 
     await streamSSE(url, {
+      body, // Pass request body for POST
       onMessage: (chunk) => {
         appendStreamingContent(chunk)
       },

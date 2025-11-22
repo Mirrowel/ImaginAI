@@ -5,8 +5,10 @@ Adventure views for ImaginAI backend.
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.http import StreamingHttpResponse
 from django.utils import timezone
 import uuid
+import json
 
 from api.models import Adventure, AdventureTurn, Scenario
 from api.serializers import AdventureSerializer, AdventureTurnSerializer
@@ -82,9 +84,10 @@ class AdventureViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['post'], url_path='generate-ai-response')
-    def generate_ai_response(self, request, pk=None):
-        """Generate AI response to user action."""
-        adventure = self.get_object()
+    async def generate_ai_response(self, request, pk=None):
+        """Generate AI response to user action (async native)."""
+        # Use async ORM methods
+        adventure = await Adventure.objects.aget(pk=pk)
         
         user_text = request.data.get('text')
         action_type = request.data.get('actionType', 'do')
@@ -98,8 +101,8 @@ class AdventureViewSet(viewsets.ModelViewSet):
             )
         
         try:
-            # Create user turn
-            AdventureTurn.objects.create(
+            # Create user turn (async)
+            await AdventureTurn.objects.acreate(
                 adventure=adventure,
                 role='user',
                 text=user_text,
@@ -110,20 +113,19 @@ class AdventureViewSet(viewsets.ModelViewSet):
             # Get AIService and generate response
             ai_service = get_ai_service(request)
             
-            # Note: generate_adventure_turn is async, need to run in sync context
-            import asyncio
-            response = asyncio.run(ai_service.generate_adventure_turn(
+            # No asyncio.run() needed - already in async context
+            response = await ai_service.generate_adventure_turn(
                 adventure=adventure,
                 user_text=user_text,
                 model=selected_model,
                 max_tokens=max_tokens
-            ))
+            )
             
             # Extract AI response text
             ai_text = response.get('choices', [{}])[0].get('message', {}).get('content', '')
             
-            # Create AI turn
-            ai_turn = AdventureTurn.objects.create(
+            # Create AI turn (async)
+            ai_turn = await AdventureTurn.objects.acreate(
                 adventure=adventure,
                 role='model',
                 text=ai_text,
@@ -131,9 +133,9 @@ class AdventureViewSet(viewsets.ModelViewSet):
                 actionType='story'
             )
             
-            # Update adventure last played time
+            # Update adventure last played time (async)
             adventure.lastPlayedAt = timezone.now()
-            adventure.save()
+            await adventure.asave()
             
             serializer = AdventureTurnSerializer(ai_turn)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -145,9 +147,9 @@ class AdventureViewSet(viewsets.ModelViewSet):
             )
     
     @action(detail=True, methods=['post'], url_path='continue-ai')
-    def continue_ai(self, request, pk=None):
-        """Continue AI narration without user input."""
-        adventure = self.get_object()
+    async def continue_ai(self, request, pk=None):
+        """Continue AI narration without user input (async native)."""
+        adventure = await Adventure.objects.aget(pk=pk)
         
         selected_model = request.data.get('selected_model', 'gemini/gemini-1.5-flash')
         max_tokens = request.data.get('global_max_output_tokens', 200)
@@ -156,20 +158,19 @@ class AdventureViewSet(viewsets.ModelViewSet):
             # Get AIService and generate response
             ai_service = get_ai_service(request)
             
-            # Run async method in sync context
-            import asyncio
-            response = asyncio.run(ai_service.generate_adventure_turn(
+            # No asyncio.run() needed - already in async context
+            response = await ai_service.generate_adventure_turn(
                 adventure=adventure,
                 user_text=None,
                 model=selected_model,
                 max_tokens=max_tokens
-            ))
+            )
             
             # Extract AI response text
             ai_text = response.get('choices', [{}])[0].get('message', {}).get('content', '')
             
-            # Create AI turn
-            ai_turn = AdventureTurn.objects.create(
+            # Create AI turn (async)
+            ai_turn = await AdventureTurn.objects.acreate(
                 adventure=adventure,
                 role='model',
                 text=ai_text,
@@ -177,9 +178,9 @@ class AdventureViewSet(viewsets.ModelViewSet):
                 actionType='story'
             )
             
-            # Update adventure last played time
+            # Update adventure last played time (async)
             adventure.lastPlayedAt = timezone.now()
-            adventure.save()
+            await adventure.asave()
             
             serializer = AdventureTurnSerializer(ai_turn)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -191,12 +192,12 @@ class AdventureViewSet(viewsets.ModelViewSet):
             )
     
     @action(detail=True, methods=['post'], url_path='retry-ai')
-    def retry_ai(self, request, pk=None):
-        """Retry the last AI response."""
-        adventure = self.get_object()
+    async def retry_ai(self, request, pk=None):
+        """Retry the last AI response (async native)."""
+        adventure = await Adventure.objects.aget(pk=pk)
         
-        # Find last AI turn
-        last_turn = adventure.adventureHistory.order_by('-timestamp').first()
+        # Find last AI turn (async)
+        last_turn = await adventure.adventureHistory.order_by('-timestamp').afirst()
         
         if not last_turn or last_turn.role != 'model':
             return Response(
@@ -204,10 +205,10 @@ class AdventureViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Find preceding user turn
-        user_turn = adventure.adventureHistory.filter(
+        # Find preceding user turn (async)
+        user_turn = await adventure.adventureHistory.filter(
             timestamp__lt=last_turn.timestamp
-        ).order_by('-timestamp').first()
+        ).order_by('-timestamp').afirst()
         
         if not user_turn or user_turn.role != 'user':
             return Response(
@@ -215,10 +216,10 @@ class AdventureViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Delete last AI turn
+        # Delete last AI turn (async)
         if last_turn.token_usage:
-            last_turn.token_usage.delete()
-        last_turn.delete()
+            await last_turn.token_usage.adelete()
+        await last_turn.adelete()
         
         # Regenerate with user turn text
         selected_model = request.data.get('selected_model', 'gemini/gemini-1.5-flash')
@@ -228,20 +229,19 @@ class AdventureViewSet(viewsets.ModelViewSet):
             # Get AIService and generate response
             ai_service = get_ai_service(request)
             
-            # Run async method in sync context
-            import asyncio
-            response = asyncio.run(ai_service.generate_adventure_turn(
+            # No asyncio.run() needed - already in async context
+            response = await ai_service.generate_adventure_turn(
                 adventure=adventure,
                 user_text=user_turn.text,
                 model=selected_model,
                 max_tokens=max_tokens
-            ))
+            )
             
             # Extract AI response text
             ai_text = response.get('choices', [{}])[0].get('message', {}).get('content', '')
             
-            # Create new AI turn
-            ai_turn = AdventureTurn.objects.create(
+            # Create new AI turn (async)
+            ai_turn = await AdventureTurn.objects.acreate(
                 adventure=adventure,
                 role='model',
                 text=ai_text,
@@ -249,9 +249,9 @@ class AdventureViewSet(viewsets.ModelViewSet):
                 actionType='story'
             )
             
-            # Update adventure last played time
+            # Update adventure last played time (async)
             adventure.lastPlayedAt = timezone.now()
-            adventure.save()
+            await adventure.asave()
             
             serializer = AdventureTurnSerializer(ai_turn)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -261,6 +261,97 @@ class AdventureViewSet(viewsets.ModelViewSet):
                 {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    @action(detail=True, methods=['post'], url_path='stream')
+    async def stream_turn_generation(self, request, pk=None):
+        """
+        Generate AI response with SSE streaming for real-time output.
+        
+        Request body:
+        {
+            "text": "optional user input" or null for continue,
+            "selected_model": "gemini/gemini-1.5-flash",
+            "max_tokens": 200,
+            "action_type": "do|say|story"
+        }
+        
+        Response: text/event-stream with JSON chunks
+        """
+        adventure = await Adventure.objects.aget(pk=pk)
+        
+        user_text = request.data.get('text')
+        action_type = request.data.get('action_type', request.data.get('actionType', 'do'))
+        selected_model = request.data.get('selected_model', 'gemini/gemini-1.5-flash')
+        max_tokens = request.data.get('max_tokens', request.data.get('global_max_output_tokens', 200))
+        
+        async def event_stream():
+            """Generate SSE events for streaming response."""
+            accumulated_text = ""
+            
+            try:
+                # Create user turn if text provided
+                if user_text:
+                    await AdventureTurn.objects.acreate(
+                        adventure=adventure,
+                        role='user',
+                        text=user_text,
+                        timestamp=timezone.now(),
+                        actionType=action_type
+                    )
+                
+                # Get AIService and build messages
+                ai_service = get_ai_service(request)
+                
+                # Stream AI response
+                stream = await ai_service.complete_stream(
+                    model=selected_model,
+                    messages=await ai_service._build_adventure_messages(adventure, user_text),
+                    max_tokens=max_tokens
+                )
+                
+                # Process stream chunks
+                async for chunk in stream:
+                    # Extract content from chunk
+                    if hasattr(chunk, 'choices') and len(chunk.choices) > 0:
+                        delta = chunk.choices[0].delta
+                        if hasattr(delta, 'content') and delta.content:
+                            text_chunk = delta.content
+                            accumulated_text += text_chunk
+                            
+                            # Send SSE event
+                            yield f"data: {json.dumps({'chunk': text_chunk})}\n\n"
+                
+                # Save completed AI turn
+                if accumulated_text:
+                    await AdventureTurn.objects.acreate(
+                        adventure=adventure,
+                        role='model',
+                        text=accumulated_text,
+                        timestamp=timezone.now(),
+                        actionType='story'
+                    )
+                    
+                    # Update adventure last played time
+                    adventure.lastPlayedAt = timezone.now()
+                    await adventure.asave()
+                
+                # Send completion signal
+                yield "data: [DONE]\n\n"
+                
+            except Exception as e:
+                # Send error event
+                error_msg = json.dumps({'error': str(e)})
+                yield f"data: {error_msg}\n\n"
+        
+        return StreamingHttpResponse(
+            event_stream(),
+            content_type='text/event-stream',
+            headers={
+                'Cache-Control': 'no-cache',
+                'X-Accel-Buffering': 'no',  # Disable nginx buffering
+            }
+        )
+    
     
     @action(detail=True, methods=['post'], url_path='add-card-to-snapshot')
     def add_card_to_snapshot(self, request, pk=None):

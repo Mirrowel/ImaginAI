@@ -1,85 +1,101 @@
 /**
- * Utility for handling Server-Sent Events (SSE) streaming.
- * Supports standard SSE format and custom event types.
+ * Stream SSE (Server-Sent Events) from backend endpoint.
+ * Handles the backend format: data: {"chunk": "text"}
+ * 
+ * @param url - The SSE endpoint URL (POST request with JSON body)
+ * @param options - Callbacks and abort signal
  */
-
-export type SSEEvent = {
-  type: string
-  data: string
-}
-
-export type SSEOptions = {
-  onMessage: (data: string) => void
-  onError?: (error: Event) => void
-  onComplete?: () => void
-  signal?: AbortSignal
-}
-
-export async function streamSSE(url: string, options: SSEOptions) {
-  const { onMessage, onError, onComplete, signal } = options
+export async function streamSSE(
+  url: string,
+  options: {
+    onMessage: (chunk: string) => void
+    onError: (error: Error) => void
+    onComplete: () => void
+    signal?: AbortSignal
+    body?: Record<string, any>
+  }
+): Promise<void> {
+  const { onMessage, onError, onComplete, signal, body } = options
 
   try {
     const response = await fetch(url, {
+      method: 'POST',
       headers: {
-        Accept: 'text/event-stream',
+        'Accept': 'text/event-stream',
+        'Content-Type': 'application/json',
       },
+      body: body ? JSON.stringify(body) : undefined,
       signal,
     })
 
     if (!response.ok) {
-      throw new Error(`SSE Error: ${response.status} ${response.statusText}`)
+      throw new Error(`SSE request failed: ${response.statusText}`)
     }
 
     const reader = response.body?.getReader()
-    const decoder = new TextDecoder()
-
     if (!reader) {
-      throw new Error('Failed to get reader from response body')
+      throw new Error('Response body is not readable')
     }
+
+    const decoder = new TextDecoder()
+    let buffer = ''
 
     while (true) {
       const { done, value } = await reader.read()
 
       if (done) {
-        onComplete?.()
+        onComplete()
         break
       }
 
-      const chunk = decoder.decode(value, { stream: true })
-      const lines = chunk.split('\n')
+      // Decode chunk and add to buffer
+      buffer += decoder.decode(value, { stream: true })
 
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6)
-          if (data === '[DONE]') {
-            onComplete?.()
+      // Process complete SSE messages (split by \n\n)
+      const messages = buffer.split('\n\n')
+      buffer = messages.pop() || '' // Keep incomplete message in buffer
+
+      for (const message of messages) {
+        if (!message.trim()) continue
+
+        // Parse SSE data line
+        const dataMatch = message.match(/^data: (.+)$/m)
+        if (!dataMatch) continue
+
+        const data = dataMatch[1]
+
+        // Check for completion signal
+        if (data === '[DONE]') {
+          onComplete()
+          return
+        }
+
+        try {
+          // Parse JSON chunk: {"chunk": "text"} or {"error": "message"}
+          const parsed = JSON.parse(data)
+          
+          if (parsed.error) {
+            onError(new Error(parsed.error))
             return
           }
-          try {
-            // Try to parse as JSON if possible, otherwise pass raw string
-            // For simple text streaming, we might just get raw text or JSON wrapped text
-            // Adjust based on backend format. Assuming JSON for now based on typical patterns.
-            const parsed = JSON.parse(data)
-             // If backend sends { content: "..." }
-            if (parsed.content) {
-                onMessage(parsed.content)
-            } else {
-                // Fallback or other fields
-                onMessage(data)
-            }
-          } catch (e) {
-            // If not JSON, just pass the raw data string
-            onMessage(data)
+          
+          if (parsed.chunk) {
+            onMessage(parsed.chunk)
           }
+        } catch (parseError) {
+          console.warn('Failed to parse SSE data:', data, parseError)
         }
       }
     }
   } catch (error) {
-    if (signal?.aborted) {
-      console.log('Stream aborted')
-      return
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        onComplete()
+      } else {
+        onError(error)
+      }
+    } else {
+      onError(new Error('Unknown error during SSE streaming'))
     }
-    console.error('SSE Stream Error:', error)
-    onError?.(error as Event)
   }
 }
