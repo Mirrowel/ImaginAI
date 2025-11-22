@@ -7,6 +7,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.http import StreamingHttpResponse
 from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 import uuid
 import json
 
@@ -262,6 +264,8 @@ class AdventureViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
+    
+    @method_decorator(csrf_exempt)
     @action(detail=True, methods=['post'], url_path='stream')
     async def stream_turn_generation(self, request, pk=None):
         """
