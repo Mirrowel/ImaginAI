@@ -3,7 +3,11 @@ import { Message } from './Message'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useGameplayStore } from '@/stores/useGameplayStore'
 
-export function ChatLog() {
+interface ChatLogProps {
+  onRetry?: () => void
+}
+
+export function ChatLog({ onRetry }: ChatLogProps) {
   const { messages, isGenerating, streamingContent } = useGameplayStore()
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -17,13 +21,14 @@ export function ChatLog() {
   return (
     <ScrollArea className="flex-1 h-full p-4">
       <div className="space-y-4 max-w-3xl mx-auto pb-4">
-        {messages.map((msg) => (
+        {messages.map((msg, index) => (
           <Message
             key={msg.id}
             role={msg.role}
             content={msg.content}
             timestamp={msg.timestamp}
             onEdit={() => console.log('Edit message', msg.id)} // TODO: Implement edit logic
+            onRetry={index === messages.length - 1 && msg.role === 'assistant' ? onRetry : undefined}
           />
         ))}
         

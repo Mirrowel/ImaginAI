@@ -1,6 +1,6 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { User, Bot, Edit2 } from 'lucide-react'
+import { User, Bot, Edit2, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -11,12 +11,15 @@ interface MessageProps {
   timestamp?: string
   isStreaming?: boolean
   onEdit?: () => void
+  onRetry?: () => void
 }
 
-export function Message({ role, content, timestamp, isStreaming, onEdit }: MessageProps) {
+export function Message({ role, content, timestamp, isStreaming, onEdit, onRetry }: MessageProps) {
+  const isUser = role === 'user'
+
   return (
     <div className={cn(
-      "flex gap-4 p-4 rounded-lg transition-colors",
+      "flex gap-4 p-4 rounded-lg transition-colors group",
       role === 'assistant' ? "bg-muted/50" : "bg-background"
     )}>
       <Avatar className="h-8 w-8 mt-1">
@@ -36,12 +39,21 @@ export function Message({ role, content, timestamp, isStreaming, onEdit }: Messa
                 {new Date(timestamp).toLocaleTimeString()}
               </span>
             )}
-            {role === 'user' && onEdit && (
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onEdit}>
-                <Edit2 size={12} />
-                <span className="sr-only">Edit message</span>
-              </Button>
-            )}
+            
+            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {isUser && onEdit && (
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={onEdit}>
+                  <Edit2 size={12} />
+                  <span className="sr-only">Edit message</span>
+                </Button>
+              )}
+              {!isUser && !isStreaming && onRetry && (
+                <Button variant="ghost" size="sm" onClick={onRetry} className="h-6 px-2 text-xs">
+                  <RefreshCw size={12} className="mr-1" />
+                  Retry
+                </Button>
+              )}
+            </div>
           </div>
         </div>
         

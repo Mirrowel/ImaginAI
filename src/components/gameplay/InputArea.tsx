@@ -1,10 +1,15 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Mic } from 'lucide-react'
+import { Send, Mic, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useGameplayStore } from '@/stores/useGameplayStore'
 
-export function InputArea() {
+interface InputAreaProps {
+  onContinue?: () => void
+  onSubmit?: (text: string) => void
+}
+
+export function InputArea({ onContinue, onSubmit }: InputAreaProps) {
   const [input, setInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const { isGenerating, activeAdventureId } = useGameplayStore()
@@ -20,8 +25,7 @@ export function InputArea() {
   const handleSubmit = () => {
     if (!input.trim() || isGenerating) return
     
-    // TODO: Call API to send message
-    console.log('Sending:', input)
+    onSubmit?.(input)
     setInput('')
   }
 
@@ -62,6 +66,18 @@ export function InputArea() {
         >
           <Send size={20} />
           <span className="sr-only">Send message</span>
+        </Button>
+      </div>
+      <div className="max-w-3xl mx-auto flex justify-end mt-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onContinue}
+          disabled={isGenerating || !activeAdventureId || !!input.trim()}
+          className="text-muted-foreground"
+        >
+          <Play size={16} className="mr-2" />
+          Continue
         </Button>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { Adventure } from '@/lib/api'
 
 interface Message {
   id: string
@@ -10,10 +11,12 @@ interface Message {
 
 interface GameplayState {
   activeAdventureId: number | null
+  activeAdventure: Adventure | null
   messages: Message[]
   isGenerating: boolean
   streamingContent: string
-  setActiveAdventure: (id: number | null) => void
+  setActiveAdventureId: (id: number | null) => void
+  setActiveAdventure: (adventure: Adventure | null) => void
   setMessages: (messages: Message[]) => void
   addMessage: (message: Message) => void
   setIsGenerating: (isGenerating: boolean) => void
@@ -23,10 +26,12 @@ interface GameplayState {
 
 export const useGameplayStore = create<GameplayState>((set) => ({
   activeAdventureId: null,
+  activeAdventure: null,
   messages: [],
   isGenerating: false,
   streamingContent: '',
-  setActiveAdventure: (id) => set({ activeAdventureId: id }),
+  setActiveAdventureId: (id) => set({ activeAdventureId: id }),
+  setActiveAdventure: (adventure) => set({ activeAdventure: adventure, activeAdventureId: adventure?.id || null }),
   setMessages: (messages) => set({ messages }),
   addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
   setIsGenerating: (isGenerating) => set({ isGenerating }),
