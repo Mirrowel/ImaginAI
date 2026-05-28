@@ -62,9 +62,16 @@ Changed:
 - Converted BrowseShell from wide text sidebar to 56px desktop icon rail, plus reduced mobile bottom navigation. Mobile utilities are routed through Settings; mobile logout remains available.
 - Reworked ScenarioEditor into a Radix Tabs writer-studio layout with Metadata, Modules, Cards, and Versions tabs while preserving existing field coverage and payload shapes.
 - Added `/settings` route as the local preferences and utility hub. Moved local preferences off the dashboard and linked Providers, Models, Import, and Admin from Settings.
+- Moved adventure state, memory, summary, and state-event tooling out of the below-story flow and into the gameplay context panel's state mode, then split that tooling into State / Memory / Events Radix tabs.
+- Added subtle assistant response variant tabs below generated assistant turns when multiple variants exist for a response group; guided retry comparison controls remain in the context panel.
+- Added story-log auto-scroll behavior: when the user is near the bottom, new turns/streaming stay visible; when scrolled up, a Hearth Dark "New content below" jump affordance appears.
+- Added reusable `SkeletonBlock`, `SkeletonList`, and `EmptyState` primitives and applied them to query-backed browse/settings/admin lists.
+- Persisted the active ScenarioEditor tab in local `uiStore` so authors keep their place across route changes.
 - Removed default `Admin` / `123` values from the login form. Seeded credentials remain documented in `RUNNING.md`, but the form starts empty.
 - Updated `RUNNING.md` with the redesigned frontend navigation, `/settings`, focus-mode gameplay shell, and manual seeded-login note.
 - Updated frontend tests where necessary for tabbed scenario editor interaction.
+- Added `frontend/tsconfig.tsbuildinfo` to `.gitignore` and removed it from Git tracking so Vite/TypeScript builds do not create persistent source-control churn.
+- Added missing `--space-5` token after final design QA found a mobile context-panel padding reference to an undefined spacing token.
 
 Decisions:
 - The final design was chosen by frontend-designer consensus/arbiter, not the primary agent. Primary-agent authority remained limited to logic, API contracts, query keys, auth, security, and verification.
@@ -73,6 +80,7 @@ Decisions:
 - Desktop context panel is a fixed right overlay with no scrim and no story reflow. Mobile context panel becomes a bottom sheet with a subtle mobile-only scrim.
 - Kept old persisted `sidebarSize` and `editorLayout` fields in `uiStore` for compatibility, but removed no-op controls from the dashboard after the redesign made them irrelevant.
 - Font imports use Latin subset packages to keep CSS/build output reasonable while preserving the agreed typography.
+- Variant selection now invalidates both the adventure query and the adventure's variant query prefix, so inline active variant tabs do not stay stale after selection.
 
 Verification:
 - `npm test` in `frontend/` passed: 24 tests.
@@ -82,14 +90,12 @@ Verification:
 
 Follow-ups:
 - Replace remaining raw HTML controls (`select`, checkbox, `details`) with Radix primitives where it materially improves accessibility/consistency.
-- Add richer skeleton/loading and empty states across query-backed browse/settings/import surfaces.
-- Add persisted active scenario-editor tab if power users need last-tab restore.
-- Add variant tabs below assistant turns for multi-variant response groups; retry form currently lives in the context panel and variant selection remains functional there.
-- Move adventure state/memory/debug tooling fully into the context panel instead of leaving the legacy collapsible panels below gameplay.
-- Add gameplay auto-scroll policy for streaming/final events and a "new content below" indicator when the user is not at the bottom.
 - Add mobile swipe-to-dismiss for the context-panel bottom sheet if desired; current bottom sheet uses close button and scrim tap.
 - Add automated accessibility checks or manual screen-reader pass for the redesigned shells and Radix interactions.
-- Consider removing `frontend/tsconfig.tsbuildinfo` from tracking if the project does not want build-info churn committed.
+- Add reusable error-state components with retry actions for failed queries/mutations.
+- Add optional literary-mode preference to swap story prose to the UI font for users who prefer maximum readability/accessibility.
+- Consider replacing text-glyph nav icons with a lightweight icon set if visual polish warrants the dependency.
+- Consider nav rail expand-on-hover after the current 56px rail has been tested in normal use.
 
 ## 2026-05-28 - Root Run Guide
 
