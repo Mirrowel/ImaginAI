@@ -19,7 +19,7 @@ class AIDImportService:
     """Tolerant AI Dungeon import mapper for full scenarios and story cards."""
 
     @staticmethod
-    def preview(raw: dict[str, Any], source_filename: str = "") -> ImportPreview:
+    def preview(raw: dict[str, Any] | list[dict[str, Any]], source_filename: str = "") -> ImportPreview:
         """Parse an AID-like payload into ImaginAI scenario/module/card draft data."""
         warnings: list[str] = []
         root = AIDImportService._unwrap(raw)
@@ -46,8 +46,10 @@ class AIDImportService:
         return ScenarioService.create(user, scenario_data)
 
     @staticmethod
-    def _unwrap(raw: dict[str, Any]) -> dict[str, Any]:
+    def _unwrap(raw: dict[str, Any] | list[dict[str, Any]]) -> dict[str, Any]:
         """Find the scenario object inside common AID export wrappers."""
+        if isinstance(raw, list):
+            return {"title": "Imported AID Story Cards", "storyCards": raw}
         for key in ("scenario", "data", "quest", "content"):
             if isinstance(raw.get(key), dict):
                 return raw[key]

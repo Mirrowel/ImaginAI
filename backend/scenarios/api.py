@@ -51,10 +51,10 @@ def version_dto(version: ScenarioVersion, include_content: bool = False) -> dict
 
 
 @router.get("/scenarios")
-def list_scenarios(request):
+def list_scenarios(request, page: int = 1, limit: int = 50):
     """List scenarios owned by the authenticated user."""
     user = require_user(request)
-    return page_response([scenario_dto(s) for s in ScenarioService.queryset_for_user(user)])
+    return page_response([scenario_dto(s) for s in ScenarioService.queryset_for_user(user)], page=page, limit=limit)
 
 
 @router.post("/scenarios")
@@ -107,11 +107,11 @@ def freeze_version(request, scenario_id: str, payload: dict | None = Body(None))
 
 
 @router.get("/scenarios/{scenario_id}/versions")
-def list_versions(request, scenario_id: str):
+def list_versions(request, scenario_id: str, page: int = 1, limit: int = 50):
     """List immutable versions for a user-owned scenario."""
     user = require_user(request)
     scenario = ScenarioService.queryset_for_user(user).get(id=scenario_id)
-    return page_response([version_dto(v) for v in scenario.versions.all()])
+    return page_response([version_dto(v) for v in scenario.versions.all()], page=page, limit=limit)
 
 
 @router.get("/scenarios/{scenario_id}/versions/{version_id}")
@@ -124,11 +124,11 @@ def get_version(request, scenario_id: str, version_id: str):
 
 
 @router.get("/scenarios/{scenario_id}/draft/modules")
-def list_modules(request, scenario_id: str):
+def list_modules(request, scenario_id: str, page: int = 1, limit: int = 50):
     """List mutable draft modules for a scenario."""
     user = require_user(request)
     scenario = ScenarioService.queryset_for_user(user).get(id=scenario_id)
-    return page_response([module_to_dict(m) for m in scenario.draft_modules.all()])
+    return page_response([module_to_dict(m) for m in scenario.draft_modules.all()], page=page, limit=limit)
 
 
 @router.post("/scenarios/{scenario_id}/draft/modules")
@@ -147,6 +147,17 @@ def create_module(request, scenario_id: str, payload: dict = Body(...)):
     )
     ScenarioVersionService.update_draft_hash(scenario)
     return module_to_dict(module)
+
+
+@router.post("/scenarios/{scenario_id}/draft/modules/reorder")
+def reorder_modules(request, scenario_id: str, payload: dict = Body(...)):
+    """Persist draft module ordering for extensible scenario editors."""
+    user = require_user(request)
+    scenario = ScenarioService.queryset_for_user(user).get(id=scenario_id)
+    for index, module_id in enumerate(payload.get("moduleIds") or []):
+        scenario.draft_modules.filter(id=module_id).update(sort_order=index * 10)
+    ScenarioVersionService.update_draft_hash(scenario)
+    return {"ok": True, "modules": [module_to_dict(m) for m in scenario.draft_modules.all()]}
 
 
 @router.patch("/scenario-modules/{module_id}")
@@ -174,11 +185,11 @@ def delete_module(request, module_id: str):
 
 
 @router.get("/scenarios/{scenario_id}/draft/cards")
-def list_cards(request, scenario_id: str):
+def list_cards(request, scenario_id: str, page: int = 1, limit: int = 50):
     """List mutable draft story cards for a scenario."""
     user = require_user(request)
     scenario = ScenarioService.queryset_for_user(user).get(id=scenario_id)
-    return page_response([card_to_dict(c) for c in scenario.draft_cards.all()])
+    return page_response([card_to_dict(c) for c in scenario.draft_cards.all()], page=page, limit=limit)
 
 
 @router.post("/scenarios/{scenario_id}/draft/cards")
@@ -189,6 +200,49 @@ def create_card(request, scenario_id: str, payload: dict = Body(...)):
     card = StoryCardService.create_draft_card(scenario, payload, scenario.draft_cards.count())
     ScenarioVersionService.update_draft_hash(scenario)
     return card_to_dict(card)
+
+
+@router.post("/scenarios/{scenario_id}/draft/cards/reorder")
+def reorder_cards(request, scenario_id: str, payload: dict = Body(...)):
+    """Persist draft story-card ordering without changing card content."""
+    user = require_user(request)
+    scenario = ScenarioService.queryset_for_user(user).get(id=scenario_id)
+    for index, card_id in enumerate(payload.get("cardIds") or []):
+        scenario.draft_cards.filter(id=card_id).update(sort_order=index * 10)
+    ScenarioVersionService.update_draft_hash(scenario)
+    return {"ok": True, "cards": [card_to_dict(c) for c in scenario.draft_cards.all()]}
+
+
+@router.post("/scenarios/{scenario_id}/draft/cards/import")
+def import_cards(request, scenario_id: str, payload: dict = Body(...)):
+    """Import AID/native-style cards into a scenario draft after user confirmation."""
+    user = require_user(request)
+    scenario = ScenarioService.queryset_for_user(user).get(id=scenario_id)
+    replace = payload.get("replace", False)
+    if replace:
+        scenario.draft_cards.all().delete()
+    cards = [StoryCardService.create_draft_card(scenario, card, scenario.draft_cards.count() + index) for index, card in enumerate(payload.get("cards") or [])]
+    ScenarioVersionService.update_draft_hash(scenario)
+    return {"items": [card_to_dict(card) for card in cards], "total": len(cards)}
+
+
+@router.get("/scenarios/{scenario_id}/draft/cards/export")
+def export_cards(request, scenario_id: str):
+    """Export draft story cards in AID-compatible card field shape."""
+    user = require_user(request)
+    scenario = ScenarioService.queryset_for_user(user).get(id=scenario_id)
+    cards = [
+        {
+            "title": card.title,
+            "type": card.card_type,
+            "description": card.summary,
+            "value": card.content,
+            "keys": card.trigger_words,
+            "useForCharacterCreation": card.use_for_character_creation,
+        }
+        for card in scenario.draft_cards.all()
+    ]
+    return {"cards": cards}
 
 
 @router.patch("/story-cards/{card_id}")
@@ -211,21 +265,21 @@ def delete_card(request, card_id: str):
 
 
 @router.get("/scenarios/{scenario_id}/versions/{version_id}/modules")
-def version_modules(request, scenario_id: str, version_id: str):
+def version_modules(request, scenario_id: str, version_id: str, page: int = 1, limit: int = 50):
     """List read-only modules from an immutable scenario version."""
     user = require_user(request)
     ScenarioService.queryset_for_user(user).get(id=scenario_id)
     version = ScenarioVersion.objects.get(id=version_id, scenario_id=scenario_id)
-    return page_response([module_to_dict(m) for m in version.modules.all()])
+    return page_response([module_to_dict(m) for m in version.modules.all()], page=page, limit=limit)
 
 
 @router.get("/scenarios/{scenario_id}/versions/{version_id}/cards")
-def version_cards(request, scenario_id: str, version_id: str):
+def version_cards(request, scenario_id: str, version_id: str, page: int = 1, limit: int = 50):
     """List read-only story cards from an immutable scenario version."""
     user = require_user(request)
     ScenarioService.queryset_for_user(user).get(id=scenario_id)
     version = ScenarioVersion.objects.get(id=version_id, scenario_id=scenario_id)
-    return page_response([card_to_dict(c) for c in version.cards.all()])
+    return page_response([card_to_dict(c) for c in version.cards.all()], page=page, limit=limit)
 
 
 @router.get("/scenarios/{scenario_id}/export")

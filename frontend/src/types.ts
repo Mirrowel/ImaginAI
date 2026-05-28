@@ -1,4 +1,4 @@
-export type Page<T> = { items: T[]; total: number };
+export type Page<T> = { items: T[]; total: number; page?: number; limit?: number; hasMore?: boolean };
 
 export type User = {
   id: string;
@@ -29,6 +29,20 @@ export type StoryCard = {
   priority: number;
   sortOrder: number;
   isEnabled: boolean;
+  useForCharacterCreation: boolean;
+  tokenBudget: number | null;
+  metadata: Record<string, unknown>;
+};
+
+export type ScenarioVersion = {
+  id: string;
+  scenarioId: string;
+  versionNumber: number;
+  title: string;
+  changeNote: string;
+  createdAt: string;
+  modules?: ScenarioModule[];
+  cards?: StoryCard[];
 };
 
 export type Scenario = {
@@ -67,6 +81,12 @@ export type ModelConfig = {
   temperature: number;
   topP: number;
   thinkingEnabled: boolean;
+  thinkingBudget?: number | null;
+  showThinkingDefault?: boolean;
+  streamThinkingDefault?: boolean;
+  additionalSystemPrompt?: string;
+  extraParameters?: Record<string, unknown>;
+  sortOrder?: number;
   isDefault: boolean;
   isEnabled: boolean;
 };
@@ -79,7 +99,107 @@ export type AdventureTurn = {
   actionType?: "do" | "say" | "story" | "continue" | "retry" | null;
   content: string;
   responseGroupId?: string | null;
+  promptSnapshotId?: string | null;
+  tokenUsageId?: string | null;
   isDeleted: boolean;
+  createdAt?: string;
+};
+
+export type GenerationVariant = {
+  id: string;
+  responseGroupId: string;
+  adventureId: string;
+  content: string;
+  retryInstruction: string;
+  includedVariantIds: string[];
+  isActive: boolean;
+  createdAt: string;
+};
+
+export type GenerationEvent =
+  | { type: "generation.status"; phase: string; message: string }
+  | { type: "generation.thinking_delta"; text: string }
+  | { type: "generation.content_delta"; text: string }
+  | { type: "generation.token_update"; [key: string]: unknown }
+  | { type: "generation.variant_created"; variantId: string }
+  | { type: "generation.final"; turnId?: string | null; variantId?: string | null; content: string; tokenUsageId?: string | null }
+  | { type: "generation.error"; message: string };
+
+export type ContextReport = {
+  includedModules: string[];
+  activatedCards: string[];
+  includedSummaryIds: string[];
+  includedMemoryIds: string[];
+  includedTurnRange: { first: number | null; last: number | null };
+  estimatedTokensByLayer: Record<string, number>;
+  modelConfigId?: string | null;
+};
+
+export type PromptSnapshot = ContextReport & {
+  id: string;
+  generationIntent: string;
+  contextLimit: number;
+  messages: Array<{ role: string; content: string }>;
+  createdAt: string;
+};
+
+export type TokenUsage = {
+  id: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  provider: string;
+  modelId: string;
+  createdAt: string;
+};
+
+export type AdventureSummary = {
+  id?: string | null;
+  adventureId?: string;
+  content: string;
+  sourceRangeMetadata: Record<string, unknown>;
+};
+
+export type AdventureMemory = {
+  id: string;
+  adventureId: string;
+  scope: string;
+  title: string;
+  content: string;
+  isPinned: boolean;
+};
+
+export type AdminDiagnostics = Record<string, number>;
+
+export type AdminUsageRow = {
+  id: string;
+  userId: string;
+  adventureId?: string | null;
+  modelConfigId?: string | null;
+  providerConnectionId?: string | null;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  provider: string;
+  modelId: string;
+  createdAt: string;
+};
+
+export type AdventureStateEvent = {
+  id: string;
+  adventureId: string;
+  stateSequence: number;
+  timelineSequence: number;
+  effectiveFromTimelineSequence: number;
+  eventType: string;
+  targetType: string;
+  targetId: string;
+  payload: Record<string, unknown>;
+  createdById: string;
+  sourceTurnId: string | null;
+  isInvalidated: boolean;
+  invalidatedAt: string | null;
+  createdAt: string;
 };
 
 export type Adventure = {
@@ -95,6 +215,7 @@ export type Adventure = {
     modules: ScenarioModule[];
     cards: StoryCard[];
     currentModelConfigId?: string | null;
+    generationSettings?: Record<string, unknown>;
     stateSequence: number;
     timelineSequence: number;
   };

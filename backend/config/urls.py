@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.contrib import admin
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.urls import path
 from ninja import NinjaAPI
 
@@ -29,6 +30,7 @@ def health(request):
     return JsonResponse({"ok": True, "service": "imaginai-backend"})
 
 
+@ensure_csrf_cookie
 def csrf(request):
     """Set and return the CSRF token used by the browser API client."""
     return JsonResponse({"csrfToken": get_token(request)})

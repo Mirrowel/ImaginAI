@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import asyncio
 from dataclasses import dataclass
 
 from django.db import transaction
@@ -12,6 +13,7 @@ from ninja.errors import HttpError
 from adventures.models import Adventure, AdventureSnapshotBase, AdventureStateEvent, AdventureTurn
 from scenarios.models import Scenario
 from scenarios.services import ScenarioVersionService, card_to_dict, module_to_dict
+from story_engine.hooks import StoryEngineHooks
 
 
 def next_timeline(adventure: Adventure) -> int:
@@ -38,12 +40,13 @@ class ReconstructedState:
     modules: list[dict]
     cards: list[dict]
     current_model_config_id: str | None
+    generation_settings: dict
     state_sequence: int
     timeline_sequence: int
 
     def stable_hash(self) -> str:
         """Hash reconstructed state for future fork/diff/sync comparisons."""
-        payload = {"modules": self.modules, "cards": self.cards, "currentModelConfigId": self.current_model_config_id}
+        payload = {"modules": self.modules, "cards": self.cards, "currentModelConfigId": self.current_model_config_id, "generationSettings": self.generation_settings}
         return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode("utf-8")).hexdigest()
 
 
@@ -154,7 +157,8 @@ class AdventureService:
                 target_id=str(fork.id),
                 payload={"parentAdventureId": str(adventure.id), "forkedFromTurnId": str(from_turn.id)},
             )
-            return fork
+        asyncio.run(StoryEngineHooks().after_fork_created({"user": user, "sourceAdventure": adventure, "forkAdventure": fork, "fromTurn": from_turn, "state": state}))
+        return fork
 
 
 class AdventureStateService:
@@ -184,6 +188,7 @@ class AdventureStateService:
         modules = copy.deepcopy(snapshot.modules)
         cards = copy.deepcopy(snapshot.cards)
         current_model_config_id = str(adventure.current_model_config_id) if adventure.current_model_config_id else None
+        generation_settings: dict = {}
         qs = adventure.state_events.all()
         if timeline_sequence is not None:
             qs = qs.filter(timeline_sequence__lte=timeline_sequence)
@@ -201,7 +206,11 @@ class AdventureStateService:
                 cards = AdventureStateService._apply_collection_event(cards, event, after)
             elif event.event_type == "model.changed":
                 current_model_config_id = event.payload.get("modelConfigId")
-        return ReconstructedState(modules=modules, cards=cards, current_model_config_id=current_model_config_id, state_sequence=latest_state, timeline_sequence=latest_timeline)
+            elif event.event_type == "generation_settings.changed":
+                generation_settings = copy.deepcopy(event.payload.get("after") or {})
+        modules = sorted(modules, key=lambda item: (item.get("sortOrder", 0), item.get("title", "")))
+        cards = sorted(cards, key=lambda item: (item.get("sortOrder", 0), item.get("title", "")))
+        return ReconstructedState(modules=modules, cards=cards, current_model_config_id=current_model_config_id, generation_settings=generation_settings, state_sequence=latest_state, timeline_sequence=latest_timeline)
 
     @staticmethod
     def _apply_collection_event(items: list[dict], event: AdventureStateEvent, after: dict | None) -> list[dict]:
@@ -263,9 +272,11 @@ class TurnService:
             )
 
     @staticmethod
-    def restore(user, adventure: Adventure, turn: AdventureTurn, mode: str = "from_here"):
-        """Restore one soft-deleted turn or the range from that turn onward."""
+    def restore(user, adventure: Adventure, turn: AdventureTurn, mode: str = "from_here", restore_state_changes_after_point: bool = False):
+        """Restore deleted turns and optionally revalidate state events invalidated by that delete."""
         if adventure.owner_user_id != user.id or turn.adventure_id != adventure.id:
             raise HttpError(404, "Turn not found")
         qs = adventure.turns.filter(sequence__gte=turn.sequence) if mode == "from_here" else adventure.turns.filter(id=turn.id)
         qs.update(is_deleted=False, deleted_at=None)
+        if mode == "from_here" and restore_state_changes_after_point:
+            adventure.state_events.filter(invalidated_by_operation_id=f"turn-delete:{turn.id}").update(is_invalidated=False, invalidated_by_operation_id="", invalidated_at=None)

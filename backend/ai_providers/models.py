@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 from django.conf import settings
 from django.db import models
 
@@ -80,12 +82,16 @@ class ProviderCredential(UUIDTimestampedModel):
     def get_secret(self) -> str:
         """Resolve decrypted secret material only for test/model-discovery/generation calls."""
         if self.auth_type == self.AuthType.ENV:
+            if self.env_var_name:
+                return os.environ.get(self.env_var_name, "")
             return settings.IMAGINAI_ENV_CREDENTIALS.get(self.provider_connection.provider_type) or ""
         return decrypt_secret(self.encrypted_secret) if self.encrypted_secret else ""
 
     @property
     def has_secret(self) -> bool:
         """Expose whether a credential exists without returning the credential itself."""
+        if self.auth_type == self.AuthType.ENV:
+            return bool(self.get_secret())
         return bool(self.env_var_name or self.encrypted_secret)
 
     def save(self, *args, **kwargs):

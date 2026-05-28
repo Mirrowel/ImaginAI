@@ -4,11 +4,12 @@ from django.http import StreamingHttpResponse
 from ninja import Body, Router
 from ninja.errors import HttpError
 
-from adventures.models import Adventure, AdventureStateEvent, AdventureTurn, GenerationVariant, PromptSnapshot, TokenUsage
+from adventures.models import Adventure, AdventureMemory, AdventureStateEvent, AdventureSummary, AdventureTurn, GenerationVariant, PromptSnapshot, TokenUsage
 from adventures.services import AdventureService, AdventureStateService, TurnService
 from common.api import page_response, require_user
 from common.time import iso
 from scenarios.models import Scenario
+from story_engine.hooks import StoryEngineHooks
 from story_engine.services import GenerationService, run_async
 
 router = Router(tags=["adventures"])
@@ -46,6 +47,7 @@ def state_dto(state) -> dict:
         "modules": state.modules,
         "cards": state.cards,
         "currentModelConfigId": state.current_model_config_id,
+        "generationSettings": state.generation_settings,
         "stateSequence": state.state_sequence,
         "timelineSequence": state.timeline_sequence,
     }
@@ -149,11 +151,43 @@ def token_usage_dto(usage: TokenUsage) -> dict:
     }
 
 
+def summary_dto(summary: AdventureSummary | None) -> dict:
+    """Serialize rough long-term adventure summary for manual/future worker updates."""
+    if not summary:
+        return {"id": None, "content": "", "sourceRangeMetadata": {}, "modelConfigId": None}
+    return {
+        "id": str(summary.id),
+        "adventureId": str(summary.adventure_id),
+        "content": summary.content,
+        "sourceRangeMetadata": summary.source_range_metadata,
+        "modelConfigId": str(summary.model_config_id) if summary.model_config_id else None,
+        "createdAt": iso(summary.created_at),
+        "updatedAt": iso(summary.updated_at),
+    }
+
+
+def memory_dto(memory: AdventureMemory) -> dict:
+    """Serialize precise pinned or future extracted memory for context panels."""
+    return {
+        "id": str(memory.id),
+        "adventureId": str(memory.adventure_id),
+        "scope": memory.scope,
+        "title": memory.title,
+        "content": memory.content,
+        "sourceTurnId": str(memory.source_turn_id) if memory.source_turn_id else None,
+        "confidence": memory.confidence,
+        "isPinned": memory.is_pinned,
+        "metadata": memory.metadata,
+        "createdAt": iso(memory.created_at),
+        "updatedAt": iso(memory.updated_at),
+    }
+
+
 @router.get("/adventures")
-def list_adventures(request):
+def list_adventures(request, page: int = 1, limit: int = 50):
     """List active adventures owned by the authenticated user."""
     user = require_user(request)
-    return page_response([adventure_dto(a) for a in AdventureService.queryset_for_user(user).exclude(status=Adventure.Status.DELETED)])
+    return page_response([adventure_dto(a) for a in AdventureService.queryset_for_user(user).exclude(status=Adventure.Status.DELETED)], page=page, limit=limit)
 
 
 @router.post("/adventures/start")
@@ -204,11 +238,11 @@ def archive_adventure(request, adventure_id: str):
 
 
 @router.get("/scenarios/{scenario_id}/adventures")
-def list_scenario_adventures(request, scenario_id: str):
+def list_scenario_adventures(request, scenario_id: str, page: int = 1, limit: int = 50):
     """List root adventures and forks for one scenario."""
     user = require_user(request)
     adventures = AdventureService.queryset_for_user(user).filter(scenario_id=scenario_id).exclude(status=Adventure.Status.DELETED)
-    return page_response([adventure_dto(a) for a in adventures])
+    return page_response([adventure_dto(a) for a in adventures], page=page, limit=limit)
 
 
 @router.post("/adventures/{adventure_id}/fork")
@@ -218,23 +252,119 @@ def fork_adventure(request, adventure_id: str, payload: dict = Body(...)):
     adventure = AdventureService.queryset_for_user(user).get(id=adventure_id)
     turn = adventure.turns.get(id=payload.get("fromTurnId"))
     fork = AdventureService.fork(user, adventure, turn, payload.get("title"))
-    return adventure_dto(fork, include_state=True)
+    data = adventure_dto(fork, include_state=True)
+    data["forkNote"] = payload.get("note") or ""
+    data["switchToFork"] = bool(payload.get("switchToFork"))
+    return data
 
 
 @router.get("/adventures/{adventure_id}/state")
-def get_state(request, adventure_id: str, timelineSequence: int = None, mode: str = "active"):
+def get_state(request, adventure_id: str, timelineSequence: int = None, untilTurnId: str = "", mode: str = "active"):
     """Reconstruct adventure state in active or historical mode at an optional boundary."""
     user = require_user(request)
     adventure = AdventureService.queryset_for_user(user).get(id=adventure_id)
+    if untilTurnId:
+        turn = adventure.turns.get(id=untilTurnId)
+        timelineSequence = turn.timeline_sequence
     return state_dto(AdventureStateService.reconstruct(adventure, timeline_sequence=timelineSequence, mode=mode))
 
 
 @router.get("/adventures/{adventure_id}/state-events")
-def list_state_events(request, adventure_id: str):
+def list_state_events(request, adventure_id: str, page: int = 1, limit: int = 50):
     """List state events for audit, inspection, and future diff tooling."""
     user = require_user(request)
     adventure = AdventureService.queryset_for_user(user).get(id=adventure_id)
-    return page_response([event_dto(e) for e in adventure.state_events.all()])
+    return page_response([event_dto(e) for e in adventure.state_events.all()], page=page, limit=limit)
+
+
+@router.get("/adventures/{adventure_id}/summary")
+def get_summary(request, adventure_id: str):
+    """Fetch the rough always-injected adventure summary, if one exists."""
+    user = require_user(request)
+    adventure = AdventureService.queryset_for_user(user).get(id=adventure_id)
+    return summary_dto(getattr(adventure, "summary", None))
+
+
+@router.patch("/adventures/{adventure_id}/summary")
+def update_summary(request, adventure_id: str, payload: dict = Body(...)):
+    """Manually update summary content and record a meaningful state event seam."""
+    user = require_user(request)
+    adventure = AdventureService.queryset_for_user(user).get(id=adventure_id)
+    summary, _ = AdventureSummary.objects.get_or_create(adventure=adventure, defaults={"content": ""})
+    before = summary.content
+    summary.content = payload.get("content", "")
+    summary.source_range_metadata = payload.get("sourceRangeMetadata") or summary.source_range_metadata
+    summary.save()
+    AdventureStateService.record_event(adventure, user, "summary.updated", "summary", str(summary.id), {"before": before, "after": summary.content})
+    return summary_dto(summary)
+
+
+@router.get("/adventures/{adventure_id}/memories")
+def list_memories(request, adventure_id: str, page: int = 1, limit: int = 50):
+    """List precise adventure memories for context injection/debug panels."""
+    user = require_user(request)
+    adventure = AdventureService.queryset_for_user(user).get(id=adventure_id)
+    return page_response([memory_dto(memory) for memory in adventure.memories.all()], page=page, limit=limit)
+
+
+@router.post("/adventures/{adventure_id}/memories")
+def create_memory(request, adventure_id: str, payload: dict = Body(...)):
+    """Create a user-pinned memory; future extraction workers use the same durable seam."""
+    user = require_user(request)
+    adventure = AdventureService.queryset_for_user(user).get(id=adventure_id)
+    memory = AdventureMemory.objects.create(
+        adventure=adventure,
+        scope=payload.get("scope", "global"),
+        title=payload.get("title") or "Memory",
+        content=payload.get("content") or "",
+        confidence=payload.get("confidence"),
+        is_pinned=payload.get("isPinned", True),
+        metadata=payload.get("metadata") or {},
+    )
+    AdventureStateService.record_event(adventure, user, "memory.created", "memory", str(memory.id), {"after": memory_dto(memory)})
+    return memory_dto(memory)
+
+
+@router.patch("/adventures/{adventure_id}/memories/{memory_id}")
+def update_memory(request, adventure_id: str, memory_id: str, payload: dict = Body(...)):
+    """Patch a memory while preserving event provenance for future diff/debug tools."""
+    user = require_user(request)
+    adventure = AdventureService.queryset_for_user(user).get(id=adventure_id)
+    memory = adventure.memories.get(id=memory_id)
+    before = memory_dto(memory)
+    for key, field in {"scope": "scope", "title": "title", "content": "content", "confidence": "confidence", "isPinned": "is_pinned", "metadata": "metadata"}.items():
+        if key in payload:
+            setattr(memory, field, payload[key])
+    memory.save()
+    AdventureStateService.record_event(adventure, user, "memory.updated", "memory", str(memory.id), {"before": before, "after": memory_dto(memory)})
+    return memory_dto(memory)
+
+
+@router.delete("/adventures/{adventure_id}/memories/{memory_id}")
+def delete_memory(request, adventure_id: str, memory_id: str):
+    """Delete a memory and record its removal as a meaningful state event."""
+    user = require_user(request)
+    adventure = AdventureService.queryset_for_user(user).get(id=adventure_id)
+    memory = adventure.memories.get(id=memory_id)
+    before = memory_dto(memory)
+    memory.delete()
+    AdventureStateService.record_event(adventure, user, "memory.deleted", "memory", memory_id, {"before": before, "after": None})
+    return {"ok": True}
+
+
+@router.post("/adventures/{adventure_id}/state/modules/reorder")
+def reorder_adventure_modules(request, adventure_id: str, payload: dict = Body(...)):
+    """Record adventure-local module ordering as state events for reconstruction and forks."""
+    user = require_user(request)
+    adventure = AdventureService.queryset_for_user(user).get(id=adventure_id)
+    state = AdventureStateService.reconstruct(adventure)
+    modules_by_id = {str(module.get("id")): dict(module) for module in state.modules}
+    events = []
+    for index, module_id in enumerate(payload.get("moduleIds") or []):
+        if module_id in modules_by_id:
+            updated = {**modules_by_id[module_id], "sortOrder": index * 10}
+            events.append(AdventureStateService.update_module(adventure, user, module_id, updated))
+    return {"ok": True, "events": [event_dto(event) for event in events]}
 
 
 @router.patch("/adventures/{adventure_id}/state/modules/{module_id}")
@@ -278,22 +408,45 @@ def delete_adventure_card(request, adventure_id: str, card_id: str):
 
 @router.patch("/adventures/{adventure_id}/state/model-settings")
 def update_model_settings(request, adventure_id: str, payload: dict = Body(...)):
-    """Record a model setting change as a state event and update current model pointer."""
+    """Record model and generation setting changes as reconstructable state events."""
     user = require_user(request)
     adventure = AdventureService.queryset_for_user(user).get(id=adventure_id)
-    model_config_id = payload.get("modelConfigId")
-    adventure.current_model_config_id = model_config_id or None
-    adventure.save(update_fields=["current_model_config"])
-    event = AdventureStateService.record_event(adventure, user, "model.changed", "model_config", str(model_config_id or ""), {"modelConfigId": model_config_id})
-    return event_dto(event)
+    events = []
+    if "modelConfigId" in payload:
+        model_config_id = payload.get("modelConfigId")
+        adventure.current_model_config_id = model_config_id or None
+        adventure.save(update_fields=["current_model_config"])
+        events.append(AdventureStateService.record_event(adventure, user, "model.changed", "model_config", str(model_config_id or ""), {"modelConfigId": model_config_id}))
+    if "generationSettings" in payload:
+        before = AdventureStateService.reconstruct(adventure).generation_settings
+        after = payload.get("generationSettings") or {}
+        events.append(AdventureStateService.record_event(adventure, user, "generation_settings.changed", "generation_settings", str(adventure.id), {"before": before, "after": after}))
+    if not events:
+        raise HttpError(400, "No modelConfigId or generationSettings supplied")
+    return {"ok": True, "events": [event_dto(event) for event in events]}
+
+
+@router.post("/adventures/{adventure_id}/state/cards/reorder")
+def reorder_adventure_cards(request, adventure_id: str, payload: dict = Body(...)):
+    """Record adventure-local card ordering as individual state events for reconstruction."""
+    user = require_user(request)
+    adventure = AdventureService.queryset_for_user(user).get(id=adventure_id)
+    state = AdventureStateService.reconstruct(adventure)
+    cards_by_id = {str(card.get("id")): dict(card) for card in state.cards}
+    events = []
+    for index, card_id in enumerate(payload.get("cardIds") or []):
+        if card_id in cards_by_id:
+            updated = {**cards_by_id[card_id], "sortOrder": index * 10}
+            events.append(AdventureStateService.update_card(adventure, user, card_id, updated))
+    return {"ok": True, "events": [event_dto(event) for event in events]}
 
 
 @router.get("/adventures/{adventure_id}/turns")
-def list_turns(request, adventure_id: str):
+def list_turns(request, adventure_id: str, page: int = 1, limit: int = 50):
     """List all turns including soft-deleted records for restore/debug UI."""
     user = require_user(request)
     adventure = AdventureService.queryset_for_user(user).get(id=adventure_id)
-    return page_response([turn_dto(t) for t in adventure.turns.all()])
+    return page_response([turn_dto(t) for t in adventure.turns.all()], page=page, limit=limit)
 
 
 @router.patch("/adventures/{adventure_id}/turns/{turn_id}")
@@ -326,7 +479,7 @@ def restore_turn(request, adventure_id: str, turn_id: str, payload: dict | None 
     payload = payload or {}
     adventure = AdventureService.queryset_for_user(user).get(id=adventure_id)
     turn = adventure.turns.get(id=turn_id)
-    TurnService.restore(user, adventure, turn, payload.get("mode", "from_here"))
+    TurnService.restore(user, adventure, turn, payload.get("mode", "from_here"), payload.get("restoreStateChangesAfterPoint", False))
     return {"ok": True}
 
 
@@ -335,7 +488,7 @@ def generate(request, adventure_id: str, payload: dict = Body(...)):
     """Run a non-streaming Do/Say/Story generation for tests and fallback clients."""
     user = require_user(request)
     adventure = AdventureService.queryset_for_user(user).get(id=adventure_id)
-    result = run_async(GenerationService().generate(
+    result = GenerationService().generate(
         user,
         adventure,
         "player_action",
@@ -343,7 +496,7 @@ def generate(request, adventure_id: str, payload: dict = Body(...)):
         content=payload.get("content", ""),
         model_config_id=payload.get("modelConfigId"),
         generation_settings=payload.get("generationSettings") or {},
-    ))
+    )
     return {"turn": turn_dto(result["turn"]), "userTurn": turn_dto(result["userTurn"]), "variant": variant_dto(result["variant"])}
 
 
@@ -353,7 +506,7 @@ def continue_generation(request, adventure_id: str, payload: dict | None = Body(
     user = require_user(request)
     payload = payload or {}
     adventure = AdventureService.queryset_for_user(user).get(id=adventure_id)
-    result = run_async(GenerationService().generate(user, adventure, "continue", model_config_id=payload.get("modelConfigId"), generation_settings=payload.get("generationSettings") or {}))
+    result = GenerationService().generate(user, adventure, "continue", model_config_id=payload.get("modelConfigId"), generation_settings=payload.get("generationSettings") or {})
     return {"turn": turn_dto(result["turn"]), "variant": variant_dto(result["variant"])}
 
 
@@ -362,7 +515,7 @@ def retry_generation(request, adventure_id: str, payload: dict = Body(...)):
     """Run a non-streaming guided retry and archive it as a variant."""
     user = require_user(request)
     adventure = AdventureService.queryset_for_user(user).get(id=adventure_id)
-    result = run_async(GenerationService().generate(
+    result = GenerationService().generate(
         user,
         adventure,
         "retry",
@@ -371,7 +524,7 @@ def retry_generation(request, adventure_id: str, payload: dict = Body(...)):
         retry_instruction=payload.get("retryInstruction", ""),
         response_group_id=payload.get("responseGroupId"),
         include_variant_ids=payload.get("includeVariantIds") or [],
-    ))
+    )
     return {"variant": variant_dto(result["variant"])}
 
 
@@ -421,7 +574,19 @@ def select_variant(request, adventure_id: str, variant_id: str):
         turn.prompt_snapshot = variant.prompt_snapshot
         turn.token_usage = variant.token_usage
         turn.save(update_fields=["content", "prompt_snapshot", "token_usage", "updated_at"])
+    run_async(StoryEngineHooks().after_variant_selected({"user": user, "adventure": adventure, "variant": variant, "turn": turn}))
     return {"variant": variant_dto(variant), "turn": turn_dto(turn) if turn else None}
+
+
+@router.get("/adventures/{adventure_id}/variants")
+def list_variants(request, adventure_id: str, responseGroupId: str = "", page: int = 1, limit: int = 50):
+    """List retry variants for an adventure, optionally scoped to one response group."""
+    user = require_user(request)
+    adventure = AdventureService.queryset_for_user(user).get(id=adventure_id)
+    variants = adventure.generation_variants.select_related("response_group").all()
+    if responseGroupId:
+        variants = variants.filter(response_group_id=responseGroupId)
+    return page_response([variant_dto(variant) for variant in variants.order_by("created_at")], page=page, limit=limit)
 
 
 @router.get("/adventures/{adventure_id}/turns/{turn_id}/prompt-snapshot")

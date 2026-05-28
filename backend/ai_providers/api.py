@@ -104,11 +104,11 @@ def _discover_models(conn: ProviderConnection) -> list[str]:
 
 
 @router.get("/provider-connections")
-def list_connections(request):
+def list_connections(request, page: int = 1, limit: int = 50):
     """List provider connections owned by the authenticated user."""
     user = require_user(request)
     items = [connection_dto(c) for c in ProviderConnectionService.queryset_for_user(user).prefetch_related("credentials")]
-    return page_response(items)
+    return page_response(items, page=page, limit=limit)
 
 
 @router.post("/provider-connections")
@@ -135,7 +135,10 @@ def update_connection(request, connection_id: str, payload: dict = Body(...)):
     conn = ProviderConnectionService.queryset_for_user(user).filter(id=connection_id).first()
     if not conn:
         raise HttpError(404, "Provider connection not found")
-    return connection_dto(ProviderConnectionService.update(conn, payload))
+    conn = ProviderConnectionService.update(conn, payload)
+    if payload.get("apiKey"):
+        ProviderCredentialService.create(user, conn, {"secret": payload["apiKey"], "displayName": payload.get("credentialDisplayName") or "Updated key"})
+    return connection_dto(conn)
 
 
 @router.delete("/provider-connections/{connection_id}")
@@ -189,10 +192,10 @@ def delete_credential(request, connection_id: str, credential_id: str):
 
 
 @router.get("/model-configs")
-def list_model_configs(request):
+def list_model_configs(request, page: int = 1, limit: int = 50):
     """List model configs owned by the authenticated user."""
     user = require_user(request)
-    return page_response([model_dto(m) for m in ModelConfigService.queryset_for_user(user)])
+    return page_response([model_dto(m) for m in ModelConfigService.queryset_for_user(user)], page=page, limit=limit)
 
 
 @router.post("/model-configs")
@@ -200,6 +203,15 @@ def create_model_config(request, payload: dict = Body(...)):
     """Create a user-owned model config backed only by a user provider connection."""
     user = require_user(request)
     return model_dto(ModelConfigService.create(user, payload))
+
+
+@router.post("/model-configs/reorder")
+def reorder_model_configs(request, payload: dict = Body(...), page: int = 1, limit: int = 50):
+    """Persist user model picker ordering without changing model configuration semantics."""
+    user = require_user(request)
+    for index, model_id in enumerate(payload.get("modelConfigIds") or []):
+        ModelConfigService.queryset_for_user(user).filter(id=model_id).update(sort_order=index * 10)
+    return page_response([model_dto(m) for m in ModelConfigService.queryset_for_user(user)], page=page, limit=limit)
 
 
 @router.get("/model-configs/{model_id}")
@@ -239,18 +251,20 @@ def set_default_model(request, model_id: str):
     return model_dto(ModelConfigService.update(model, {"isDefault": True}))
 
 
+
+
 @router.get("/available-model-configs")
-def available_model_configs(request):
+def available_model_configs(request, page: int = 1, limit: int = 50):
     """Return the merged safe model picker list for gameplay."""
     user = require_user(request)
-    return page_response([model_dto(m) for m in ModelConfigService.available_for_user(user)])
+    return page_response([model_dto(m) for m in ModelConfigService.available_for_user(user)], page=page, limit=limit)
 
 
 @admin_router.get("/provider-connections")
-def admin_list_connections(request):
+def admin_list_connections(request, page: int = 1, limit: int = 50):
     """List platform/global provider connections for admins."""
     require_admin(request)
-    return page_response([connection_dto(c) for c in ProviderConnectionService.queryset_for_user(request.user, admin=True).prefetch_related("credentials")])
+    return page_response([connection_dto(c) for c in ProviderConnectionService.queryset_for_user(request.user, admin=True).prefetch_related("credentials")], page=page, limit=limit)
 
 
 @admin_router.post("/provider-connections")
@@ -263,9 +277,12 @@ def admin_create_connection(request, payload: dict = Body(...)):
 @admin_router.patch("/provider-connections/{connection_id}")
 def admin_update_connection(request, connection_id: str, payload: dict = Body(...)):
     """Patch a platform/global provider connection."""
-    require_admin(request)
+    user = require_admin(request)
     conn = ProviderConnection.objects.get(id=connection_id, owner_type=OwnerScope.PLATFORM)
-    return connection_dto(ProviderConnectionService.update(conn, payload))
+    conn = ProviderConnectionService.update(conn, payload)
+    if payload.get("apiKey"):
+        ProviderCredentialService.create(user, conn, {"secret": payload["apiKey"], "displayName": payload.get("credentialDisplayName") or "Updated key"}, admin=True)
+    return connection_dto(conn)
 
 
 @admin_router.delete("/provider-connections/{connection_id}")
@@ -317,10 +334,10 @@ def admin_delete_credential(request, connection_id: str, credential_id: str):
 
 
 @admin_router.get("/model-configs")
-def admin_list_models(request):
+def admin_list_models(request, page: int = 1, limit: int = 50):
     """List platform/global model configs for admins."""
     user = require_admin(request)
-    return page_response([model_dto(m) for m in ModelConfigService.queryset_for_user(user, admin=True)])
+    return page_response([model_dto(m) for m in ModelConfigService.queryset_for_user(user, admin=True)], page=page, limit=limit)
 
 
 @admin_router.post("/model-configs")
@@ -344,3 +361,20 @@ def admin_delete_model(request, model_id: str):
     user = require_admin(request)
     ModelConfigService.queryset_for_user(user, admin=True).filter(id=model_id).delete()
     return {"ok": True}
+
+
+@admin_router.post("/model-configs/{model_id}/set-default")
+def admin_set_default_model(request, model_id: str):
+    """Mark one platform/global model config as the default for all users."""
+    user = require_admin(request)
+    model = ModelConfigService.queryset_for_user(user, admin=True).get(id=model_id)
+    return model_dto(ModelConfigService.update(model, {"isDefault": True}))
+
+
+@admin_router.post("/model-configs/reorder")
+def admin_reorder_models(request, payload: dict = Body(...), page: int = 1, limit: int = 50):
+    """Persist platform/global model picker ordering for all users."""
+    user = require_admin(request)
+    for index, model_id in enumerate(payload.get("modelConfigIds") or []):
+        ModelConfigService.queryset_for_user(user, admin=True).filter(id=model_id).update(sort_order=index * 10)
+    return page_response([model_dto(m) for m in ModelConfigService.queryset_for_user(user, admin=True)], page=page, limit=limit)

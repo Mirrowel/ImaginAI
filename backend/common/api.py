@@ -21,6 +21,11 @@ def require_admin(request: HttpRequest):
     return user
 
 
-def page_response(items: list[dict[str, Any]], total: int | None = None) -> dict[str, Any]:
-    """Wrap list results in the pagination-ready envelope used by the frontend."""
-    return {"items": items, "total": len(items) if total is None else total}
+def page_response(items: list[dict[str, Any]], total: int | None = None, page: int = 1, limit: int | None = None) -> dict[str, Any]:
+    """Wrap list results in a stable pagination envelope from day one."""
+    safe_page = max(1, int(page or 1))
+    safe_limit = max(1, min(int(limit), 200)) if limit else len(items) or 50
+    full_total = len(items) if total is None else total
+    start = (safe_page - 1) * safe_limit
+    end = start + safe_limit
+    return {"items": items[start:end], "total": full_total, "page": safe_page, "limit": safe_limit, "hasMore": end < full_total}

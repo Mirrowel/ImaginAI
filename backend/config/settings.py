@@ -12,9 +12,28 @@ LIB_DIR = REPO_ROOT / "lib"
 if str(LIB_DIR) not in sys.path:
     sys.path.insert(0, str(LIB_DIR))
 
+
+def load_backend_env() -> None:
+    """Load root `.env.backend` values without overriding real shell environment values."""
+    env_path = REPO_ROOT / ".env.backend"
+    if not env_path.exists():
+        return
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key:
+            os.environ.setdefault(key, value)
+
+
+load_backend_env()
+
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "imaginai-dev-secret-change-me")
-DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+DEBUG = os.environ.get("DJANGO_DEBUG", "1").lower() in {"1", "true", "yes", "on"}
+ALLOWED_HOSTS = (os.environ.get("DJANGO_ALLOWED_HOSTS") or os.environ.get("ALLOWED_HOSTS") or "localhost,127.0.0.1").split(",")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -63,12 +82,23 @@ TEMPLATES = [
     }
 ]
 
+DB_ENGINE = os.environ.get("DJANGO_DB_ENGINE") or ("django.db.backends.postgresql" if os.environ.get("DB_HOST") else "django.db.backends.sqlite3")
 DATABASES = {
     "default": {
-        "ENGINE": os.environ.get("DJANGO_DB_ENGINE", "django.db.backends.sqlite3"),
-        "NAME": os.environ.get("DJANGO_DB_NAME", str(BASE_DIR / "db.sqlite3")),
+        "ENGINE": DB_ENGINE,
+        "NAME": os.environ.get("DJANGO_DB_NAME") or os.environ.get("DB_NAME") or str(BASE_DIR / "db.sqlite3"),
     }
 }
+if "postgresql" in DB_ENGINE:
+    DATABASES["default"].update(
+        {
+            "USER": os.environ.get("DJANGO_DB_USER") or os.environ.get("DB_USER") or "imaginai",
+            "PASSWORD": os.environ.get("DJANGO_DB_PASSWORD") or os.environ.get("DB_PASSWORD") or "",
+            "HOST": os.environ.get("DJANGO_DB_HOST") or os.environ.get("DB_HOST") or "127.0.0.1",
+            "PORT": os.environ.get("DJANGO_DB_PORT") or os.environ.get("DB_PORT") or "5432",
+            "CONN_MAX_AGE": int(os.environ.get("DJANGO_DB_CONN_MAX_AGE") or os.environ.get("DB_CONN_MAX_AGE") or "60"),
+        }
+    )
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -89,7 +119,21 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SAMESITE = "Lax"
-CSRF_TRUSTED_ORIGINS = [origin for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",") if origin]
+FRONTEND_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS") or os.environ.get("CORS_ALLOWED_ORIGINS") or "http://localhost:5173,http://127.0.0.1:5173"
+CSRF_TRUSTED_ORIGINS = [origin for origin in FRONTEND_ORIGINS.split(",") if origin]
+
+REDIS_URL = os.environ.get("REDIS_URL") or (
+    f"redis://{os.environ.get('REDIS_HOST', '127.0.0.1')}:{os.environ.get('REDIS_PORT', '6379')}/{os.environ.get('REDIS_DB', '1')}"
+    if os.environ.get("REDIS_HOST") or os.environ.get("REDIS_URL")
+    else ""
+)
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+    }
+} if REDIS_URL else {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
 IMAGINAI_ENV_CREDENTIALS = {
     "openai": os.environ.get("OPENAI_API_KEY"),

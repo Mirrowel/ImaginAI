@@ -1,16 +1,50 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 type UiState = {
   actionType: "do" | "say" | "story";
   setActionType: (actionType: "do" | "say" | "story") => void;
   selectedModelId: string | null;
   setSelectedModelId: (selectedModelId: string | null) => void;
+  theme: "dark" | "system";
+  setTheme: (theme: "dark" | "system") => void;
+  showThinkingDefault: boolean;
+  setShowThinkingDefault: (showThinkingDefault: boolean) => void;
+  streamThinking: boolean;
+  setStreamThinking: (streamThinking: boolean) => void;
+  debugPanelsDefaultOpen: boolean;
+  setDebugPanelsDefaultOpen: (debugPanelsDefaultOpen: boolean) => void;
+  textStreamingEnabled: boolean;
+  setTextStreamingEnabled: (textStreamingEnabled: boolean) => void;
+  sidebarSize: "compact" | "comfortable";
+  setSidebarSize: (sidebarSize: "compact" | "comfortable") => void;
+  editorLayout: "stacked" | "split";
+  setEditorLayout: (editorLayout: "stacked" | "split") => void;
 };
 
-/** Local UI/gameplay state that should not be owned by the backend. */
-export const useUiStore = create<UiState>((set) => ({
-  actionType: "do",
-  setActionType: (actionType) => set({ actionType }),
-  selectedModelId: null,
-  setSelectedModelId: (selectedModelId) => set({ selectedModelId }),
-}));
+/** Local UI/gameplay state and durable preferences that should not be backend-owned. */
+export const useUiStore = create<UiState>()(
+  persist(
+    (set) => ({
+      actionType: "do",
+      setActionType: (actionType) => set({ actionType }),
+      selectedModelId: null,
+      setSelectedModelId: (selectedModelId) => set({ selectedModelId }),
+      theme: "dark",
+      setTheme: (theme) => set({ theme }),
+      showThinkingDefault: false,
+      setShowThinkingDefault: (showThinkingDefault) => set({ showThinkingDefault }),
+      streamThinking: false,
+      setStreamThinking: (streamThinking) => set({ streamThinking }),
+      debugPanelsDefaultOpen: false,
+      setDebugPanelsDefaultOpen: (debugPanelsDefaultOpen) => set({ debugPanelsDefaultOpen }),
+      textStreamingEnabled: true,
+      setTextStreamingEnabled: (textStreamingEnabled) => set({ textStreamingEnabled }),
+      sidebarSize: "comfortable",
+      setSidebarSize: (sidebarSize) => set({ sidebarSize }),
+      editorLayout: "stacked",
+      setEditorLayout: (editorLayout) => set({ editorLayout }),
+    }),
+    { name: "imaginai-ui-preferences" },
+  ),
+);
