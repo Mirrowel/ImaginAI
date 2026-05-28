@@ -30,14 +30,13 @@ export function AdventureStatePanel({ adventure, models }: { adventure: import("
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["adventure", adventure.id] }),
   });
 
-  return <details className="card"><summary>Adventure State</summary><div className="stack">
+  return <div className="stack">
     <label>Adventure Model Override<select value={selectedModel} onChange={(event) => setSelectedModel(event.target.value)}><option value="">Scenario/default model</option>{models.map((model) => <option key={model.id} value={model.id}>{model.displayName}</option>)}</select></label>
     <button onClick={() => modelMutation.mutate()}>Save Model Override</button>
     <div className="subcard stack"><h3>Generation Settings</h3><input placeholder="Temperature override" value={temperature} onChange={(event) => setTemperature(event.target.value)} /><input placeholder="Context limit override" value={contextLimit} onChange={(event) => setContextLimit(event.target.value)} /><input placeholder="Visible target tokens" value={visibleTargetTokens} onChange={(event) => setVisibleTargetTokens(event.target.value)} /><button onClick={() => settingsMutation.mutate()}>Save Generation Settings</button></div>
     <h3>Modules</h3><div className="list">{adventure.state?.modules.map((module) => <AdventureModuleEditor key={module.id} adventureId={adventure.id} module={module} />)}</div>
     <h3>Adventure Cards</h3><button className="ghost" onClick={() => addCard.mutate()}>Add Adventure Card</button><div className="list">{adventure.state?.cards.map((card, index, cards) => <AdventureCardEditor key={card.id} adventureId={adventure.id} card={card} cards={cards} index={index} />)}</div>
-    <AdventureStateEventList adventureId={adventure.id} />
-  </div></details>;
+  </div>;
 }
 
 /** Inline editor for modules that have diverged in an adventure fork/state timeline. */
@@ -88,7 +87,7 @@ function AdventureCardEditor({ adventureId, card, cards, index }: { adventureId:
 }
 
 /** Collapsed state-events audit panel for debug inspection. */
-function AdventureStateEventList({ adventureId }: { adventureId: string }) {
+export function AdventureStateEventList({ adventureId }: { adventureId: string }) {
   const events = useStateEvents(adventureId);
   return <details className="subcard"><summary>State Events ({events.data?.total ?? "…"})</summary><div className="stack">{events.data?.items.length ? events.data.items.map((event: AdventureStateEvent) => <div className="list-item" key={event.id}><div className="adventure-row-header"><strong>{event.eventType}</strong><span className={`tag ${event.isInvalidated ? "warning" : ""}`}>{event.targetType}{event.isInvalidated ? " · invalidated" : ""}</span></div><span className="muted">seq {event.stateSequence} · tl {event.timelineSequence} · {event.targetId ? `${event.targetId.slice(0, 8)}…` : "no target"} · {event.createdAt}</span></div>) : <p className="muted">No state events recorded.</p>}</div></details>;
 }

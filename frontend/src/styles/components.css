@@ -150,6 +150,11 @@ input[type="file"]::file-selector-button {
   margin: 0;
   letter-spacing: -0.02em;
 }
+.section-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
 .inline-form, .mode-row, .fork-row { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
 
 /* =========================================
@@ -229,6 +234,44 @@ details > div, details > .stack { padding: var(--space-3); }
   align-content: start;
   gap: 0;
   padding: var(--space-6) var(--space-8);
+  position: relative;
+}
+
+/* "Jump to latest" affordance: shown when user scrolls up during streaming/new content */
+.jump-to-latest {
+  position: sticky;
+  bottom: 0;
+  left: 50%;
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 6px 16px;
+  margin-bottom: var(--space-2);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  color: var(--color-accent);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: background var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+  z-index: 1;
+}
+.jump-to-latest:hover {
+  background: var(--bg-hover);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+.jump-to-latest:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+.jump-to-latest:active {
+  transform: scale(0.97);
 }
 
 /* =========================================
@@ -404,6 +447,62 @@ details > div, details > .stack { padding: var(--space-3); }
 }
 
 /* =========================================
+   Variant tabs (inline below assistant turns)
+   ========================================= */
+
+.variant-tabs {
+  display: flex;
+  gap: 2px;
+  margin-top: var(--space-2);
+  padding-left: 2px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+}
+.variant-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out),
+              background var(--duration-fast) var(--ease-out);
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1;
+}
+.variant-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+.variant-tab:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 1px;
+}
+.variant-tab.active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+  background: rgba(212, 162, 78, 0.06);
+}
+.variant-tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.variant-tab-label {
+  font-weight: 600;
+}
+.variant-tab-time {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+  font-size: 11px;
+}
+
+/* =========================================
    Inline delete/restore confirmation
    ========================================= */
 
@@ -496,6 +595,58 @@ details > div, details > .stack { padding: var(--space-3); }
 .context-panel-form {
   display: grid;
   gap: var(--space-3);
+}
+
+/* =========================================
+   State mode tabs (Radix Tabs in context panel)
+   ========================================= */
+
+.state-tabs-root {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+}
+.state-tabs-list {
+  display: flex;
+  border-bottom: 1px solid var(--border-default);
+  gap: 0;
+  flex-shrink: 0;
+}
+.state-tabs-trigger {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out);
+  line-height: 1;
+}
+.state-tabs-trigger:hover {
+  color: var(--text-primary);
+}
+.state-tabs-trigger:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+.state-tabs-trigger[data-state="active"] {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+.state-tabs-content {
+  padding-top: var(--space-3);
+  outline: none;
+}
+.state-tabs-content:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
 }
 
 /* =========================================
@@ -750,6 +901,58 @@ details > div, details > .stack { padding: var(--space-3); }
   margin: 0;
 }
 
+/* =========================================
+   Skeleton loading states
+   ========================================= */
+
+.skeleton-block {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+}
+.skeleton-line {
+  height: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-sunken);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+.skeleton-list {
+  display: grid;
+  gap: var(--space-2);
+}
+.skeleton-list .skeleton-block {
+  padding: var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+/* =========================================
+   Empty states
+   ========================================= */
+
+.empty-state {
+  padding: var(--space-8) var(--space-4);
+  text-align: center;
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+}
+.empty-state-message {
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  max-width: 40ch;
+  margin: 0;
+}
+.empty-state-action {
+  margin-top: var(--space-1);
+}
+
 /* Empty state for tabs with no content */
 .editor-empty-state {
   padding: var(--space-8) var(--space-4);
@@ -787,6 +990,7 @@ details > div, details > .stack { padding: var(--space-3); }
   .context-panel { animation: none; }
   .context-panel-scrim { animation: none; }
   .turn-actions-menu { animation: none; }
+  .skeleton-line { animation: none; opacity: 0.4; }
 }
 
 /* =========================================

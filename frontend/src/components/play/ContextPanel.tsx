@@ -1,16 +1,25 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import * as Tabs from "@radix-ui/react-tabs";
 import { useForkAdventure, useStreamRetryTurn, useVariants, useSelectVariant, useContextReport, usePromptSnapshot, useTokenUsage } from "../../hooks/useTurn";
 import { useUiStore } from "../../uiStore";
-import type { AdventureTurn, GenerationEvent } from "../../types";
+import type { Adventure, AdventureTurn, GenerationEvent, ModelConfig } from "../../types";
+import { AdventureStatePanel } from "./AdventureStatePanel";
+import { AdventureStateEventList } from "./AdventureStatePanel";
+import { AdventureMemoryPanel } from "./AdventureMemoryPanel";
 
 /**
  * Right overlay context panel. Mounts on open, unmounts on close.
  * Modes: state | fork | retry | inspect | streaming.
  * Overlay model: position fixed, slides from right. Story log width never changes.
+ *
+ * The `state` mode renders AdventureStatePanel and AdventureMemoryPanel
+ * as sub-sections, replacing the legacy below-story collapsible panels.
  */
 export function ContextPanel({
   adventureId,
+  adventure,
+  models,
   selectedModelId,
   onGenerationEvent,
   generationSettings,
@@ -19,6 +28,8 @@ export function ContextPanel({
   turns,
 }: {
   adventureId: string;
+  adventure: Adventure;
+  models: ModelConfig[];
   selectedModelId: string | null;
   onGenerationEvent: (event: GenerationEvent) => void;
   generationSettings?: Record<string, unknown>;
@@ -57,6 +68,24 @@ export function ContextPanel({
         </button>
       </div>
       <div className="context-panel-body">
+        {contextPanelMode === "state" ? (
+          <Tabs.Root defaultValue="state" className="state-tabs-root">
+            <Tabs.List className="state-tabs-list" aria-label="Adventure tooling">
+              <Tabs.Trigger className="state-tabs-trigger" value="state">State</Tabs.Trigger>
+              <Tabs.Trigger className="state-tabs-trigger" value="memory">Memory</Tabs.Trigger>
+              <Tabs.Trigger className="state-tabs-trigger" value="events">Events</Tabs.Trigger>
+            </Tabs.List>
+            <Tabs.Content className="state-tabs-content" value="state">
+              <AdventureStatePanel adventure={adventure} models={models} />
+            </Tabs.Content>
+            <Tabs.Content className="state-tabs-content" value="memory">
+              <AdventureMemoryPanel adventureId={adventureId} />
+            </Tabs.Content>
+            <Tabs.Content className="state-tabs-content" value="events">
+              <AdventureStateEventList adventureId={adventureId} />
+            </Tabs.Content>
+          </Tabs.Root>
+        ) : null}
         {contextPanelMode === "fork" && contextPanelTurnId ? (
           <ForkForm adventureId={adventureId} turn={selectedTurn} turnId={contextPanelTurnId} />
         ) : null}
@@ -74,9 +103,6 @@ export function ContextPanel({
         ) : null}
         {contextPanelMode === "streaming" ? (
           <StreamingView streamStatus={streamStatus} streamThinkingText={streamThinkingText} />
-        ) : null}
-        {contextPanelMode === "state" ? (
-          <p className="muted">Adventure state details will appear here in Phase 4.</p>
         ) : null}
       </div>
     </aside>

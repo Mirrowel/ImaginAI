@@ -550,8 +550,15 @@ describe("AdventureCardEditor fields", () => {
   it("renders all card editor fields including cardType, summary, activationMode, priority, tokenBudget, metadata", async () => {
     renderRoute("/adventures/adv1");
 
-    // Open the Adventure State details panel to see cards
-    const stateSummary = await screen.findByText("Adventure State");
+    // Open the context panel in state mode via the State button
+    const stateButton = await screen.findByRole("button", { name: "Open adventure state panel" });
+    await userEvent.click(stateButton);
+
+    // The Adventure State panel is now inside the context panel overlay
+    // Find the <summary> element (not the <h2> header) to expand the details
+    const stateSummaries = await screen.findAllByText("Adventure State");
+    // The <summary> element is the one we want to click to expand
+    const stateSummary = stateSummaries.find((el) => el.tagName === "SUMMARY")!;
     await userEvent.click(stateSummary);
 
     expect(await screen.findByDisplayValue("Dragon Scale")).toBeInTheDocument();
@@ -567,7 +574,12 @@ describe("AdventureCardEditor fields", () => {
   it("saves adventure card with metadata parsed via parseJsonObject", async () => {
     renderRoute("/adventures/adv1");
 
-    const stateSummary = await screen.findByText("Adventure State");
+    // Open the context panel in state mode via the State button
+    const stateButton = await screen.findByRole("button", { name: "Open adventure state panel" });
+    await userEvent.click(stateButton);
+
+    const stateSummaries = await screen.findAllByText("Adventure State");
+    const stateSummary = stateSummaries.find((el) => el.tagName === "SUMMARY")!;
     await userEvent.click(stateSummary);
 
     await screen.findByDisplayValue("Dragon Scale");

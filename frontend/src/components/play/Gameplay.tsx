@@ -8,8 +8,6 @@ import { FullScreenMessage } from "../primitives/FullScreenMessage";
 import { ModelPicker } from "../primitives/ModelPicker";
 import { StoryLog } from "./StoryLog";
 import { ContextPanel } from "./ContextPanel";
-import { AdventureStatePanel } from "./AdventureStatePanel";
-import { AdventureMemoryPanel } from "./AdventureMemoryPanel";
 import type { GenerationEvent } from "../../types";
 import type { TurnAction } from "./TurnView";
 
@@ -18,8 +16,8 @@ import type { TurnAction } from "./TurnView";
  *
  * Layout: story log (scroll) + composer (fixed) as flex siblings.
  * Context panel overlays from right without reflow.
- * AdventureStatePanel and AdventureMemoryPanel render below the gameplay grid
- * (collapsible, for power-user access; will move to context panel in Phase 4).
+ * Adventure state and memory tools are accessed via the context panel
+ * (state mode), not as separate below-story panels.
  */
 export function Gameplay() {
   const { adventureId } = useParams();
@@ -139,7 +137,17 @@ export function Gameplay() {
     <section className="gameplay">
       <header className="section-heading">
         <h1>{adventure.data.title}</h1>
-        <ModelPicker models={models.data?.items ?? []} value={selectedModelId} onChange={setSelectedModelId} />
+        <div className="section-heading-actions">
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => { setContextPanelMode("state"); setContextPanelTurnId(null); setContextPanelOpen(true); }}
+            aria-label="Open adventure state panel"
+          >
+            State
+          </button>
+          <ModelPicker models={models.data?.items ?? []} value={selectedModelId} onChange={setSelectedModelId} />
+        </div>
       </header>
 
       {/* Story log + composer grid: scroll area + fixed composer */}
@@ -154,6 +162,8 @@ export function Gameplay() {
           onEditCancel={handleEditCancel}
           onDeleteCancel={handleDeleteCancel}
           streamingContent={streamingContent}
+          hasStreamingContent={Boolean(streamText || (streamThinkingText && showThinking))}
+          streamingContentVersion={streamText.length + streamThinkingText.length + streamStatus.length}
         />
         <form className="composer" onSubmit={submit}>
           <div className="mode-row">
@@ -195,9 +205,11 @@ export function Gameplay() {
         </form>
       </div>
 
-      {/* Context panel (overlay) */}
+      {/* Context panel (overlay) — state/fork/retry/inspect/streaming */}
       <ContextPanel
         adventureId={adventureId!}
+        adventure={adventure.data}
+        models={models.data?.items ?? []}
         selectedModelId={selectedModelId}
         onGenerationEvent={handleGenerationEvent}
         generationSettings={generationSettings}
@@ -205,10 +217,6 @@ export function Gameplay() {
         streamThinkingText={streamThinkingText}
         turns={turns}
       />
-
-      {/* Adventure state and memory panels (power-user, below gameplay grid) */}
-      <AdventureStatePanel adventure={adventure.data} models={models.data?.items ?? []} />
-      <AdventureMemoryPanel adventureId={adventureId!} />
     </section>
   );
 }

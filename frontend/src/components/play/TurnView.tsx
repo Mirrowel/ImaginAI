@@ -1,6 +1,6 @@
 import { memo, useCallback, useState } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import { useSaveTurn, useDeleteTurn, useRestoreTurn } from "../../hooks/useTurn";
+import { useSaveTurn, useDeleteTurn, useRestoreTurn, useVariants, useSelectVariant } from "../../hooks/useTurn";
 import type { AdventureTurn } from "../../types";
 
 export type TurnAction =
@@ -115,6 +115,14 @@ export const TurnView = memo(function TurnView({
         </DropdownMenu.Root>
       </div>
 
+      {/* Variant tabs for assistant turns with multiple responses */}
+      {isAssistant && turn.responseGroupId && !isDeleted ? (
+        <VariantTabs
+          adventureId={adventureId}
+          responseGroupId={turn.responseGroupId}
+        />
+      ) : null}
+
       {/* Inline delete confirmation */}
       {activeAction === "delete" && !isDeleted ? (
         <DeleteConfirmInline
@@ -143,11 +151,54 @@ export const TurnView = memo(function TurnView({
     prev.turn.content === next.turn.content &&
     prev.turn.isDeleted === next.turn.isDeleted &&
     prev.turn.sequence === next.turn.sequence &&
+    prev.turn.responseGroupId === next.turn.responseGroupId &&
     prev.activeAction === next.activeAction &&
     prev.turnIndex === next.turnIndex &&
     prev.totalTurns === next.totalTurns
   );
 });
+
+// ---------------------------------------------------------------------------
+// Variant Tabs (inline below assistant turns)
+// ---------------------------------------------------------------------------
+
+/**
+ * Story-adjacent variant selector for assistant turns with multiple responses.
+ * Renders only when 2+ variants exist for a response group.
+ * Styled as subtle inline underlined tabs, not boxed SaaS tabs.
+ */
+function VariantTabs({ adventureId, responseGroupId }: {
+  adventureId: string;
+  responseGroupId: string;
+}) {
+  const variants = useVariants(adventureId, responseGroupId);
+  const selectVariant = useSelectVariant();
+
+  if (!variants.data || variants.data.total <= 1) return null;
+
+  return (
+    <div className="variant-tabs" role="tablist" aria-label="Response variants">
+      {variants.data.items.map((variant, index) => (
+        <button
+          key={variant.id}
+          role="tab"
+          className={`variant-tab${variant.isActive ? " active" : ""}`}
+          aria-selected={variant.isActive}
+          aria-label={`Variant ${index + 1}${variant.isActive ? " (active)" : ""}`}
+          disabled={selectVariant.isPending}
+          onClick={() => {
+            if (!variant.isActive) {
+              selectVariant.mutate({ adventureId, variantId: variant.id });
+            }
+          }}
+        >
+          <span className="variant-tab-label">v{index + 1}</span>
+          <span className="variant-tab-time">{variant.createdAt.slice(11, 19)}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Inline Edit

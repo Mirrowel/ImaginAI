@@ -99,7 +99,10 @@ export function useSelectVariant() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (args: { adventureId: string; variantId: string }) => api.selectVariant(args.adventureId, args.variantId),
-    onSuccess: (_variant, args) => { queryClient.invalidateQueries({ queryKey: ["adventure", args.adventureId] }); },
+    onSuccess: (_variant, args) => {
+      queryClient.invalidateQueries({ queryKey: ["adventure", args.adventureId] });
+      queryClient.invalidateQueries({ queryKey: ["variants", args.adventureId] });
+    },
   });
 }
 

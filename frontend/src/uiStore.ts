@@ -26,6 +26,8 @@ type UiState = {
   setContextPanelMode: (mode: "state" | "fork" | "retry" | "inspect" | "streaming") => void;
   contextPanelTurnId: string | null;
   setContextPanelTurnId: (id: string | null) => void;
+  scenarioEditorTab: "metadata" | "modules" | "cards" | "versions";
+  setScenarioEditorTab: (tab: "metadata" | "modules" | "cards" | "versions") => void;
 };
 
 /** Local UI/gameplay state and durable preferences that should not be backend-owned. */
@@ -56,6 +58,8 @@ export const useUiStore = create<UiState>()(
       setContextPanelMode: (contextPanelMode) => set({ contextPanelMode }),
       contextPanelTurnId: null,
       setContextPanelTurnId: (contextPanelTurnId) => set({ contextPanelTurnId }),
+      scenarioEditorTab: "metadata",
+      setScenarioEditorTab: (scenarioEditorTab) => set({ scenarioEditorTab }),
     }),
     { name: "imaginai-ui-preferences" },
   ),

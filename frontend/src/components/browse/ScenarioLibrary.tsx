@@ -19,7 +19,7 @@ export function ScenarioLibrary() {
       <header className="section-heading"><h1>Scenario Library</h1><Link className="button ghost" to="/import">Import</Link></header>
       <form className="inline-form" onSubmit={(event) => { event.preventDefault(); create.mutate(title); }}><input value={title} onChange={(event) => setTitle(event.target.value)} /><button>Create Scenario</button></form>
       <input className="search-input" placeholder="Search scenarios by title, description, or tag…" value={search} onChange={(event) => setSearch(event.target.value)} />
-      <ScenarioList scenarios={filtered} />
+      <ScenarioList scenarios={filtered} isLoading={scenarios.isLoading} />
       <PageInfo total={scenarios.data?.total ?? 0} shown={filtered.length} hasMore={scenarios.data?.hasMore} onLoadMore={() => setPage((p) => p + 1)} />
     </section>
   );

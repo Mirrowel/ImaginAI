@@ -1,9 +1,10 @@
-import { FormEvent, useState } from "react";
+import { FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import * as Tabs from "@radix-ui/react-tabs";
 import { useScenario, useScenarioVersions, useUpdateScenario, useCreateScenarioModule, useDuplicateScenario, useFreezeScenario, useDeleteScenario, useExportScenario } from "../../hooks/useScenario";
 import { useStartAdventure } from "../../hooks/useAdventure";
 import { useAvailableModels } from "../../hooks/useModels";
+import { useUiStore } from "../../uiStore";
 import { FullScreenMessage } from "../primitives/FullScreenMessage";
 import { ModuleEditor } from "./ModuleEditor";
 import { ScenarioCardEditor } from "./ScenarioCardEditor";
@@ -30,7 +31,7 @@ export function ScenarioEditor() {
   const exportScenario = useExportScenario(scenarioId!);
   const addModule = useCreateScenarioModule(scenarioId!);
 
-  const [activeTab, setActiveTab] = useState("metadata");
+  const { scenarioEditorTab, setScenarioEditorTab } = useUiStore();
 
   if (!scenario.data) return <FullScreenMessage title="Loading scenario" />;
 
@@ -69,7 +70,7 @@ export function ScenarioEditor() {
       </header>
 
       {/* Tabbed authoring surface */}
-      <Tabs.Root value={activeTab} onValueChange={setActiveTab} className="editor-tabs-root">
+      <Tabs.Root value={scenarioEditorTab} onValueChange={(v) => setScenarioEditorTab(v as "metadata" | "modules" | "cards" | "versions")} className="editor-tabs-root">
         <Tabs.List className="editor-tabs-list" aria-label="Scenario editor sections">
           <Tabs.Trigger value="metadata" className="editor-tabs-trigger">Metadata</Tabs.Trigger>
           <Tabs.Trigger value="modules" className="editor-tabs-trigger">
