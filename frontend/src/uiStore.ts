@@ -20,6 +20,12 @@ type UiState = {
   setSidebarSize: (sidebarSize: "compact" | "comfortable") => void;
   editorLayout: "stacked" | "split";
   setEditorLayout: (editorLayout: "stacked" | "split") => void;
+  contextPanelOpen: boolean;
+  setContextPanelOpen: (open: boolean) => void;
+  contextPanelMode: "state" | "fork" | "retry" | "inspect" | "streaming";
+  setContextPanelMode: (mode: "state" | "fork" | "retry" | "inspect" | "streaming") => void;
+  contextPanelTurnId: string | null;
+  setContextPanelTurnId: (id: string | null) => void;
 };
 
 /** Local UI/gameplay state and durable preferences that should not be backend-owned. */
@@ -44,6 +50,12 @@ export const useUiStore = create<UiState>()(
       setSidebarSize: (sidebarSize) => set({ sidebarSize }),
       editorLayout: "stacked",
       setEditorLayout: (editorLayout) => set({ editorLayout }),
+      contextPanelOpen: false,
+      setContextPanelOpen: (contextPanelOpen) => set({ contextPanelOpen }),
+      contextPanelMode: "state",
+      setContextPanelMode: (contextPanelMode) => set({ contextPanelMode }),
+      contextPanelTurnId: null,
+      setContextPanelTurnId: (contextPanelTurnId) => set({ contextPanelTurnId }),
     }),
     { name: "imaginai-ui-preferences" },
   ),

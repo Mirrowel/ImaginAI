@@ -371,6 +371,10 @@ describe("Scenario editor card fields", () => {
   it("renders all card editor fields including summary, activation mode, priority, token budget, metadata", async () => {
     renderRoute("/scenarios/s1");
 
+    // Navigate to the Cards tab (Radix Tabs)
+    const cardsTab = await screen.findByRole("tab", { name: /Cards/ });
+    await userEvent.click(cardsTab);
+
     expect(await screen.findByDisplayValue("Dragon")).toBeInTheDocument();
     expect(screen.getByText("Activation Mode")).toBeInTheDocument();
     expect(screen.getByText("Priority")).toBeInTheDocument();
@@ -382,6 +386,10 @@ describe("Scenario editor card fields", () => {
 
   it("saves card with updated fields through the API", async () => {
     renderRoute("/scenarios/s1");
+
+    // Navigate to the Cards tab (Radix Tabs)
+    const cardsTab = await screen.findByRole("tab", { name: /Cards/ });
+    await userEvent.click(cardsTab);
 
     await screen.findByDisplayValue("Dragon");
 

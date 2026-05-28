@@ -43,6 +43,54 @@ Follow-ups:
 - Known next steps, risks, or open questions.
 ```
 
+## 2026-05-28 - Hearth Dark Frontend Redesign
+
+Context:
+- User rejected the recently rewritten frontend as visually unacceptable and requested a design-led redo using frontend-designer subagents rather than primary-agent design judgment.
+- Ran a multi-round design council with labelled proposals, cross-critiques, convergence votes, and a final frontend-designer arbiter. The primary agent stayed responsible for API/state/wiring guardrails.
+- Final consensus was named Hearth Dark: warm charcoal/amber-gold interactive-fiction workspace, story-first gameplay, serif prose, sans UI chrome, no cyan AI dashboard aesthetic.
+
+Changed:
+- Added shared design-council artifacts under `.cache/design-council/` for proposals, peer reviews, final consensus, and implementation handoff. These are cache/workspace artifacts, not application source.
+- Split the old `frontend/src/App.tsx` monolith into modular route shells, hooks, components, styles, and helpers under `frontend/src/components/`, `frontend/src/hooks/`, `frontend/src/shells/`, `frontend/src/styles/`, and `frontend/src/lib/`.
+- Added `RequireAuth`, `BrowseShell`, `PlayShell`, and `AuthShell` route structure. Gameplay now renders in `PlayShell` as a peer route, without the browse navigation rail.
+- Added Hearth Dark CSS tokens/base/shell/component style layers and font imports using Latin subsets for Source Serif 4, Geist, and Geist Mono.
+- Added Radix and virtualization dependencies for tabs/dropdowns/context interactions and long story logs.
+- Rebuilt gameplay structure around a virtualized `StoryLog`, memoized read-mode `TurnView`, visible Radix `...` menu, inline edit, inline delete/restore confirmation, and right overlay `ContextPanel` for fork/retry/inspect.
+- Fixed gameplay wiring during review: per-turn edit/delete/restore mutations use the real turn id, retry uses the selected turn's real `responseGroupId`, and all broad `invalidateQueries()` calls were replaced with keyed invalidations.
+- Added mobile context-panel bottom-sheet behavior with mobile-only scrim while preserving desktop no-scrim right overlay.
+- Converted BrowseShell from wide text sidebar to 56px desktop icon rail, plus reduced mobile bottom navigation. Mobile utilities are routed through Settings; mobile logout remains available.
+- Reworked ScenarioEditor into a Radix Tabs writer-studio layout with Metadata, Modules, Cards, and Versions tabs while preserving existing field coverage and payload shapes.
+- Added `/settings` route as the local preferences and utility hub. Moved local preferences off the dashboard and linked Providers, Models, Import, and Admin from Settings.
+- Removed default `Admin` / `123` values from the login form. Seeded credentials remain documented in `RUNNING.md`, but the form starts empty.
+- Updated `RUNNING.md` with the redesigned frontend navigation, `/settings`, focus-mode gameplay shell, and manual seeded-login note.
+- Updated frontend tests where necessary for tabbed scenario editor interaction.
+
+Decisions:
+- The final design was chosen by frontend-designer consensus/arbiter, not the primary agent. Primary-agent authority remained limited to logic, API contracts, query keys, auth, security, and verification.
+- `api.ts`, `types.ts`, `streaming.ts`, backend endpoints, SSE event shapes, auth/CSRF flow, provider credential secrecy, and mutation payloads were treated as hard guardrails and left intact.
+- Turns are intentionally prose blocks, not cards or chat bubbles. Edit/delete are inline; fork/retry/inspect go to the context panel.
+- Desktop context panel is a fixed right overlay with no scrim and no story reflow. Mobile context panel becomes a bottom sheet with a subtle mobile-only scrim.
+- Kept old persisted `sidebarSize` and `editorLayout` fields in `uiStore` for compatibility, but removed no-op controls from the dashboard after the redesign made them irrelevant.
+- Font imports use Latin subset packages to keep CSS/build output reasonable while preserving the agreed typography.
+
+Verification:
+- `npm test` in `frontend/` passed: 24 tests.
+- `npm run build` in `frontend/` passed.
+- Scanned frontend source for unkeyed `invalidateQueries()` and full-page `location.assign()` regressions after review fixes.
+- No backend tests were run for this redesign slice because changes were frontend/docs/dependency scoped.
+
+Follow-ups:
+- Replace remaining raw HTML controls (`select`, checkbox, `details`) with Radix primitives where it materially improves accessibility/consistency.
+- Add richer skeleton/loading and empty states across query-backed browse/settings/import surfaces.
+- Add persisted active scenario-editor tab if power users need last-tab restore.
+- Add variant tabs below assistant turns for multi-variant response groups; retry form currently lives in the context panel and variant selection remains functional there.
+- Move adventure state/memory/debug tooling fully into the context panel instead of leaving the legacy collapsible panels below gameplay.
+- Add gameplay auto-scroll policy for streaming/final events and a "new content below" indicator when the user is not at the bottom.
+- Add mobile swipe-to-dismiss for the context-panel bottom sheet if desired; current bottom sheet uses close button and scrim tap.
+- Add automated accessibility checks or manual screen-reader pass for the redesigned shells and Radix interactions.
+- Consider removing `frontend/tsconfig.tsbuildinfo` from tracking if the project does not want build-info churn committed.
+
 ## 2026-05-28 - Root Run Guide
 
 Context:

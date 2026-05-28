@@ -3,7 +3,20 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { App } from "./App";
-import "./styles.css";
+
+/* Font imports — Hearth Dark design system */
+import "@fontsource/source-serif-4/latin-400.css";
+import "@fontsource/source-serif-4/latin-700.css";
+import "@fontsource/geist/latin-400.css";
+import "@fontsource/geist/latin-500.css";
+import "@fontsource/geist/latin-700.css";
+import "@fontsource/geist-mono/latin-400.css";
+
+/* Style layers in order */
+import "./styles/tokens.css";
+import "./styles/base.css";
+import "./styles/shells.css";
+import "./styles/components.css";
 
 const queryClient = new QueryClient();
 

@@ -1,0 +1,8 @@
+import { FormEvent } from "react";
+import type { ProviderConnection } from "../../types";
+import { parseJsonObject } from "../../lib/parseJsonObject";
+
+/** Shared advanced model creation form for user and admin scopes. */
+export function ModelForm({ providers, onSubmit }: { providers: ProviderConnection[]; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {
+  return <form className="stack" onSubmit={onSubmit}><select name="providerConnectionId">{providers.map((provider) => <option value={provider.id} key={provider.id}>{provider.name}</option>)}</select><input name="displayName" placeholder="Display name" /><input name="modelId" placeholder="upstream model id" /><input name="contextWindow" type="number" defaultValue={32768} /><input name="userContextLimitDefault" type="number" defaultValue={8192} /><input name="visibleResponseTargetTokens" type="number" defaultValue={350} /><input name="temperature" type="number" step="0.1" defaultValue={0.8} /><input name="topP" type="number" step="0.01" defaultValue={0.95} /><input name="thinkingBudget" type="number" placeholder="Thinking budget" /><label className="checkbox"><input name="thinkingEnabled" type="checkbox" /> Thinking enabled</label><label className="checkbox"><input name="showThinkingDefault" type="checkbox" /> Show thinking by default</label><label className="checkbox"><input name="streamThinkingDefault" type="checkbox" /> Stream thinking by default</label><textarea name="additionalSystemPrompt" placeholder="Optional additional system prompt" /><textarea name="extraParameters" defaultValue="{}" /><button>Create Model</button></form>;
+}

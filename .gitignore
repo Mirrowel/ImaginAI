@@ -124,6 +124,7 @@ cython_debug/
 .vscode/
 
 node_modules/
+frontend/tsconfig.tsbuildinfo
 
 metadata.json
 Pics/2.jpeg
